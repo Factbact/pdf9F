@@ -6,6 +6,7 @@
     <title>PDF面付け変換ツール (N-up)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -106,13 +107,13 @@
             <!-- 3. 実行 -->
             <section>
                  <h2 class="text-xl font-semibold mb-4 flex items-center text-gray-700 dark:text-gray-200"><span class="bg-blue-500 text-white rounded-full h-8 w-8 text-sm flex items-center justify-center mr-3">3</span>実行</h2>
-                <button id="convert-btn" class="w-full flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>変換開始</button>
+                <button id="preview-btn" class="w-full flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>プレビューして変換</button>
             </section>
 
             <!-- 4. 進捗とログ -->
             <section id="progress-section" class="hidden">
                 <h2 class="text-xl font-semibold mb-4 flex items-center text-gray-700 dark:text-gray-200"><span class="bg-blue-500 text-white rounded-full h-8 w-8 text-sm flex items-center justify-center mr-3">4</span>進捗状況</h2>
-                <div id="size-info" class="text-sm text-center text-gray-600 dark:text-gray-400 mb-4"></div>
+                <div id="progress-details" class="text-sm text-center text-gray-600 dark:text-gray-400 mb-4"></div>
                 <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div id="progress-bar" class="bg-blue-500 text-xs font-medium text-white text-center p-1 leading-none rounded-full transition-all duration-300" style="width: 0%">0%</div>
                 </div>
@@ -122,6 +123,13 @@
                 </div>
             </section>
             
+            <!-- 失敗したファイル -->
+            <section id="failed-files-section" class="hidden">
+                <h2 class="text-xl font-semibold mb-4 flex items-center text-red-600 dark:text-red-400">処理に失敗したファイル</h2>
+                <ul id="failed-files-list" class="space-y-2 text-sm"></ul>
+                <button id="reprocess-btn" class="mt-4 flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg text-sm"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" /></svg>失敗したファイルのみ再処理</button>
+            </section>
+
             <!-- エラー表示 -->
             <div id="error-box" class="hidden mt-6 p-4 bg-red-100 dark:bg-red-800/50 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 rounded-lg"><p id="error-message"></p></div>
         </main>
@@ -129,9 +137,25 @@
         <footer class="text-center mt-8 text-sm text-gray-500 dark:text-gray-400"><p>&copy; 2024 PDF N-up Tool. All rights reserved.</p></footer>
     </div>
 
+    <!-- プレビューモーダル -->
+    <div id="preview-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-3xl transform transition-all duration-300">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4">出力プレビュー</h3>
+            <div class="bg-gray-200 dark:bg-gray-700 p-4 rounded-lg">
+                <canvas id="preview-canvas" class="w-full h-auto"></canvas>
+            </div>
+            <div class="mt-6 flex justify-end gap-4">
+                <button id="cancel-preview-btn" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-lg">キャンセル</button>
+                <button id="confirm-convert-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">変換を実行</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // グローバル変数と定数
         const { PDFDocument, rgb, StandardFonts, degrees } = PDFLib;
+        const { pdfjsLib } = window;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://mozilla.github.io/pdf.js/build/pdf.worker.js`;
         const MM_TO_PT = 72 / 25.4;
 
         // DOM要素
@@ -141,19 +165,26 @@
         const selectFolderBtn = document.getElementById('select-folder-btn');
         const folderSupportNote = document.getElementById('folder-support-note');
         const fileInfo = document.getElementById('file-info');
-        const convertBtn = document.getElementById('convert-btn');
+        const previewBtn = document.getElementById('preview-btn');
         const progressSection = document.getElementById('progress-section');
         const progressBar = document.getElementById('progress-bar');
+        const progressDetails = document.getElementById('progress-details');
         const logArea = document.getElementById('log');
         const errorBox = document.getElementById('error-box');
         const errorMessage = document.getElementById('error-message');
         const darkModeToggle = document.getElementById('dark-mode-toggle');
-        const sizeInfo = document.getElementById('size-info');
         const autoRotateCheckbox = document.getElementById('auto-rotate');
+        const previewModal = document.getElementById('preview-modal');
+        const previewCanvas = document.getElementById('preview-canvas');
+        const cancelPreviewBtn = document.getElementById('cancel-preview-btn');
+        const confirmConvertBtn = document.getElementById('confirm-convert-btn');
+        const failedFilesSection = document.getElementById('failed-files-section');
+        const failedFilesList = document.getElementById('failed-files-list');
+        const reprocessBtn = document.getElementById('reprocess-btn');
 
-        let selectedFiles = []; // { file: File, relativePath: string }[]
+        let selectedFiles = [];
         let inputDirHandle = null;
-        let totalOutputSize = 0;
+        let failedFiles = [];
 
         // --- 初期化処理 ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -189,9 +220,38 @@
         dropArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.add('dragging'); });
         dropArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragging'); });
         dropArea.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragging'); handleDrop(e.dataTransfer); });
-        convertBtn.addEventListener('click', startBatchProcess);
+        previewBtn.addEventListener('click', showPreview);
+        cancelPreviewBtn.addEventListener('click', () => previewModal.classList.add('hidden'));
+        confirmConvertBtn.addEventListener('click', () => {
+            previewModal.classList.add('hidden');
+            startBatchProcess();
+        });
+        reprocessBtn.addEventListener('click', () => {
+            selectedFiles = failedFiles;
+            failedFiles = [];
+            failedFilesSection.classList.add('hidden');
+            startBatchProcess();
+        });
 
         // --- 関数定義 ---
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function formatTime(ms) {
+            if (ms < 1000) return '数秒';
+            const seconds = Math.round(ms / 1000);
+            if (seconds < 60) return `${seconds}秒`;
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}分${remainingSeconds}秒`;
+        }
 
         async function handleFolderSelection() {
             if (!('showDirectoryPicker' in window)) {
@@ -199,18 +259,14 @@
             }
             try {
                 const dirHandle = await window.showDirectoryPicker();
-                showProgress();
-                log(`フォルダ「${dirHandle.name}」をスキャン中...`);
                 const filesWithPaths = await getFilesInDirectory(dirHandle);
                 if (filesWithPaths.length > 0) {
-                    log(`${filesWithPaths.length}個のPDFファイルが見つかりました。`);
                     updateSelectedFiles(filesWithPaths, dirHandle);
                 } else {
                     handleError(`フォルダ「${dirHandle.name}」内にPDFファイルが見つかりませんでした。`);
                 }
             } catch (error) {
-                if (error.name === 'AbortError') log('フォルダ選択がキャンセルされました。');
-                else handleError('フォルダの読み込み中にエラーが発生しました。', error);
+                if (error.name !== 'AbortError') handleError('フォルダの読み込み中にエラーが発生しました。', error);
             }
         }
 
@@ -231,11 +287,8 @@
                     try {
                         const dirHandle = await navigator.storage.getDirectory();
                         const dirHandleForDrop = await dirHandle.getDirectoryHandle(entry.fullPath.substring(1), { create: false });
-                        showProgress();
-                        log(`ドロップされたフォルダ「${entry.name}」をスキャン中...`);
                         const filesWithPaths = await getFilesInDirectory(dirHandleForDrop);
                         if (filesWithPaths.length > 0) {
-                            log(`${filesWithPaths.length}個のPDFファイルが見つかりました。`);
                             updateSelectedFiles(filesWithPaths, dirHandleForDrop);
                         } else {
                             handleError('ドロップされたフォルダにPDFファイルが見つかりませんでした。');
@@ -263,21 +316,10 @@
             return files;
         }
         
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-        }
-
         function updateSelectedFiles(filesToProcess, dirHandle = null) {
             selectedFiles = filesToProcess.map(f => ({ ...f, id: crypto.randomUUID() }));
             inputDirHandle = dirHandle;
-            
             const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
-
             if (selectedFiles.length === 1) {
                 fileInfo.textContent = `選択中のファイル: ${selectedFiles[0].file.name} (${formatBytes(totalInputSize)})`;
             } else if (selectedFiles.length > 1) {
@@ -285,9 +327,51 @@
             } else {
                 fileInfo.textContent = '';
             }
-
-            convertBtn.disabled = selectedFiles.length === 0;
+            previewBtn.disabled = selectedFiles.length === 0;
             hideError();
+        }
+
+        async function showPreview() {
+            if (selectedFiles.length === 0) return;
+            previewModal.classList.remove('hidden');
+            const [cols, rows] = document.getElementById('layout').value.split('x').map(Number);
+            const margin = parseFloat(document.getElementById('margin').value) * MM_TO_PT;
+            const gutter = parseFloat(document.getElementById('gutter').value) * MM_TO_PT;
+            const firstFile = selectedFiles[0].file;
+
+            const fileBuffer = await firstFile.arrayBuffer();
+            const pdfDoc = await PDFDocument.load(fileBuffer);
+            const firstPage = pdfDoc.getPage(0);
+            let { width, height } = firstPage.getSize();
+
+            if (autoRotateCheckbox.checked && width > height) {
+                [width, height] = [height, width];
+            }
+
+            const newPageWidth = (width * cols) + (gutter * (cols - 1)) + (margin * 2);
+            const newPageHeight = (height * rows) + (gutter * (rows - 1)) + (margin * 2);
+            
+            const canvas = previewCanvas;
+            const ctx = canvas.getContext('2d');
+            canvas.width = newPageWidth;
+            canvas.height = newPageHeight;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i < Math.min(cols * rows, pdfDoc.getPageCount()); i++) {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const x = margin + col * (width + gutter);
+                const y = margin + row * (height + gutter);
+                ctx.strokeRect(x, y, width, height);
+                ctx.font = '24px sans-serif';
+                ctx.fillStyle = '#9ca3af';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`Page ${i + 1}`, x + width / 2, y + height / 2);
+            }
         }
 
         function log(message) {
@@ -304,8 +388,9 @@
 
         function showProgress() {
             progressSection.classList.remove('hidden');
+            failedFilesSection.classList.add('hidden');
             logArea.textContent = '';
-            sizeInfo.textContent = '';
+            progressDetails.textContent = '';
             updateProgress(0);
         }
         
@@ -314,7 +399,7 @@
             errorBox.classList.remove('hidden');
             if (error) console.error(error);
             log(`エラー: ${message}`);
-            convertBtn.disabled = false;
+            previewBtn.disabled = false;
         }
 
         function hideError() {
@@ -332,18 +417,15 @@
 
             if (srcPdf.isEncrypted) throw new Error('暗号化されたPDFはサポートされていません。');
 
-            // 自動回転処理
-            if (autoRotateCheckbox.checked) {
-                const pages = srcPdf.getPages();
-                const firstPage = pages[0];
-                const { width, height } = firstPage.getSize();
-                const isFirstPagePortrait = height > width;
-
+            const pages = srcPdf.getPages();
+            if (autoRotateCheckbox.checked && pages.length > 0) {
+                const firstPageSize = pages[0].getSize();
+                const isFirstPagePortrait = firstPageSize.height > firstPageSize.width;
                 for (const page of pages) {
                     const size = page.getSize();
                     const isCurrentPagePortrait = size.height > size.width;
                     if (isFirstPagePortrait !== isCurrentPagePortrait) {
-                        page.setRotation(degrees(90));
+                        page.setRotation(degrees(page.getRotation().angle + 90));
                     }
                 }
             }
@@ -355,7 +437,6 @@
             const embeddedPages = await newPdf.embedPages(srcPdf.getPages());
             
             const { width: srcWidth, height: srcHeight } = embeddedPages[0];
-            
             const newPageWidth = (srcWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
             const newPageHeight = (srcHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
 
@@ -381,8 +462,37 @@
             }
             showProgress();
             hideError();
-            convertBtn.disabled = true;
-            totalOutputSize = 0;
+            previewBtn.disabled = true;
+            let totalOutputSize = 0;
+            const startTime = Date.now();
+
+            const processFile = async (fileObject, index, outputDirHandle = null) => {
+                const fileNumber = index + 1;
+                const totalFiles = selectedFiles.length;
+                log(`---`);
+                log(`[${fileNumber}/${totalFiles}] "${fileObject.relativePath}" の処理を開始`);
+                updateProgress(0);
+
+                try {
+                    const newPdfBytes = await createNupPdfBytes(fileObject.file);
+                    totalOutputSize += newPdfBytes.length;
+
+                    if (outputDirHandle) {
+                        await savePdfToFile(newPdfBytes, fileObject, outputDirHandle);
+                    } else {
+                        await downloadPdf(newPdfBytes, fileObject);
+                    }
+                } catch (error) {
+                    handleError(`"${fileObject.file.name}" の処理に失敗しました。${error.message}`, error);
+                    failedFiles.push(fileObject);
+                }
+
+                const elapsedTime = Date.now() - startTime;
+                const avgTimePerFile = elapsedTime / fileNumber;
+                const remainingFiles = totalFiles - fileNumber;
+                const etr = remainingFiles * avgTimePerFile;
+                progressDetails.textContent = `処理中: ${fileNumber} / ${totalFiles} ファイル | 残り時間の目安: ${formatTime(etr)}`;
+            };
 
             if (inputDirHandle) {
                 try {
@@ -390,78 +500,73 @@
                     log(`出力先フォルダ「${outputFolderName}」を作成/準備しています...`);
                     const outputDirHandle = await inputDirHandle.getDirectoryHandle(outputFolderName, { create: true });
                     for (let i = 0; i < selectedFiles.length; i++) {
-                        const fileObject = selectedFiles[i];
-                        log(`---`);
-                        log(`[${i + 1}/${selectedFiles.length}] "${fileObject.relativePath}" の処理を開始`);
-                        updateProgress(0);
-                        await processAndSavePdf(fileObject, outputDirHandle);
+                        await processFile(selectedFiles[i], i, outputDirHandle);
                     }
                 } catch (error) {
                     handleError('出力フォルダの作成またはファイル保存に失敗しました。アクセス権限を確認してください。', error);
                 }
             } else {
                 for (let i = 0; i < selectedFiles.length; i++) {
-                    const fileObject = selectedFiles[i];
-                    log(`---`);
-                    log(`[${i + 1}/${selectedFiles.length}] "${fileObject.file.name}" の処理を開始`);
-                    updateProgress(0);
-                    await processAndDownloadPdf(fileObject);
+                    await processFile(selectedFiles[i], i);
                 }
             }
 
             log(`---`);
             log('すべてのファイルの処理が完了しました！');
             const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
-            sizeInfo.textContent = `入力合計: ${formatBytes(totalInputSize)} → 出力合計: ${formatBytes(totalOutputSize)}`;
-            convertBtn.disabled = false;
-        }
+            progressDetails.textContent = `完了！ 入力合計: ${formatBytes(totalInputSize)} → 出力合計: ${formatBytes(totalOutputSize)}`;
+            previewBtn.disabled = false;
 
-        async function processAndSavePdf(fileObject, outputDirHandle) {
-            const { file, relativePath } = fileObject;
-            try {
-                const newPdfBytes = await createNupPdfBytes(file);
-                totalOutputSize += newPdfBytes.length;
-                const layoutValue = document.getElementById('layout').value;
-                const suffix = `_${layoutValue}.pdf`;
-                const newFileName = file.name.replace(/\.pdf$/i, '') + suffix;
-                const pathParts = relativePath.split('/');
-                pathParts.pop();
-                let currentDirHandle = outputDirHandle;
-                for (const part of pathParts) {
-                    currentDirHandle = await currentDirHandle.getDirectoryHandle(part, { create: true });
-                }
-                log(`  ファイルを保存中: ${[outputDirHandle.name, ...pathParts, newFileName].join('/')}`);
-                const fileHandle = await currentDirHandle.getFileHandle(newFileName, { create: true });
-                const writable = await fileHandle.createWritable();
-                await writable.write(newPdfBytes);
-                await writable.close();
-                log(`  保存が完了しました。`);
-            } catch (error) {
-                handleError(`"${file.name}" の処理に失敗しました。${error.message}`, error);
+            if (failedFiles.length > 0) {
+                renderFailedFiles();
             }
         }
 
-        async function processAndDownloadPdf(fileObject) {
+        async function savePdfToFile(bytes, fileObject, outputDirHandle) {
+            const { file, relativePath } = fileObject;
+            const layoutValue = document.getElementById('layout').value;
+            const suffix = `_${layoutValue}.pdf`;
+            const newFileName = file.name.replace(/\.pdf$/i, '') + suffix;
+            const pathParts = relativePath.split('/');
+            pathParts.pop();
+            let currentDirHandle = outputDirHandle;
+            for (const part of pathParts) {
+                currentDirHandle = await currentDirHandle.getDirectoryHandle(part, { create: true });
+            }
+            log(`  ファイルを保存中: ${[outputDirHandle.name, ...pathParts, newFileName].join('/')}`);
+            const fileHandle = await currentDirHandle.getFileHandle(newFileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(bytes);
+            await writable.close();
+            log(`  保存が完了しました。`);
+        }
+
+        async function downloadPdf(bytes, fileObject) {
             const { file } = fileObject;
-            try {
-                const newPdfBytes = await createNupPdfBytes(file);
-                totalOutputSize += newPdfBytes.length;
-                const layoutValue = document.getElementById('layout').value;
-                const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                const suffix = `_${layoutValue}.pdf`;
-                a.download = file.name.replace(/\.pdf$/i, '') + suffix;
-                document.body.appendChild(a);
-                a.click();
-                log(`  "${a.download}" のダウンロードを開始しました。`);
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 100);
-            } catch (error) {
-                handleError(`"${file.name}" の処理に失敗しました。${error.message}`, error);
+            const layoutValue = document.getElementById('layout').value;
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const suffix = `_${layoutValue}.pdf`;
+            a.download = file.name.replace(/\.pdf$/i, '') + suffix;
+            document.body.appendChild(a);
+            a.click();
+            log(`  "${a.download}" のダウンロードを開始しました。`);
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        function renderFailedFiles() {
+            failedFilesSection.classList.remove('hidden');
+            failedFilesList.innerHTML = '';
+            for (const fileObject of failedFiles) {
+                const li = document.createElement('li');
+                li.className = 'bg-red-100 dark:bg-red-900/50 p-2 rounded-md text-red-700 dark:text-red-200';
+                li.textContent = fileObject.relativePath;
+                failedFilesList.appendChild(li);
             }
         }
     </script>
