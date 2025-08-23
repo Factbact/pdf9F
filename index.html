@@ -6,7 +6,6 @@
     <title>PDF面付け変換ツール (N-up)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -154,8 +153,6 @@
     <script>
         // グローバル変数と定数
         const { PDFDocument, rgb, StandardFonts, degrees } = PDFLib;
-        const { pdfjsLib } = window;
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://mozilla.github.io/pdf.js/build/pdf.worker.js`;
         const MM_TO_PT = 72 / 25.4;
 
         // DOM要素
