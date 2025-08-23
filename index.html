@@ -1,49 +1,91 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF面付け変換ツール (N-up)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* カスタムスタイル */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
         .file-drop-area {
-            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, transform 0.2s ease;
+        }
+        .file-drop-area:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
         .dragging {
             background-color: #e0f2fe; /* bg-sky-100 */
             border-color: #0ea5e9; /* border-sky-500 */
+            transform: scale(1.02);
+        }
+        /* ダークモードトグルのスタイル */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
+        /* セクションのアニメーション */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans antialiased">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-300 font-sans antialiased transition-colors duration-300">
     <div class="container mx-auto p-4 md:p-8 max-w-4xl">
 
         <!-- ヘッダー -->
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">PDF面付け変換ツール</h1>
-            <p class="mt-2 text-lg text-gray-600 dark:text-gray-400">PDFのページを1枚の用紙に複数配置（N-up）します。</p>
-            <p class="mt-1 text-sm text-red-500 dark:text-red-400">⚠️ ファイルはサーバーにアップロードされません。すべての処理はブラウザ内で完結します。</p>
+        <header class="flex justify-between items-center mb-8">
+            <div class="text-left">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">PDF面付け変換ツール</h1>
+                <p class="mt-2 text-lg text-gray-500 dark:text-gray-400">PDFをスマートに、素早く面付け。</p>
+            </div>
+            <!-- ダークモードトグル -->
+            <div class="flex items-center">
+                <span class="text-sm text-gray-500 mr-3 dark:text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                    </svg>
+                </span>
+                <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="dark-mode-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                    <label for="dark-mode-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                </div>
+            </div>
         </header>
 
-        <main class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8">
+        <main class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 md:p-8 space-y-10">
             
             <!-- 1. ファイルまたはフォルダを選択 -->
-            <section id="file-input-section">
-                <h2 class="text-xl font-semibold mb-4 border-b pb-2 dark:border-gray-600">1. ファイルまたはフォルダを選択</h2>
-                <div id="drop-area" class="file-drop-area border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
+            <section>
+                <h2 class="text-xl font-semibold mb-4 flex items-center text-gray-700 dark:text-gray-200"><span class="bg-indigo-500 text-white rounded-full h-8 w-8 text-sm flex items-center justify-center mr-3">1</span>ファイルまたはフォルダを選択</h2>
+                <div id="drop-area" class="file-drop-area border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center cursor-pointer bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex flex-col items-center justify-center">
-                        <svg class="w-12 h-12 text-gray-400 dark:text-gray-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <svg class="w-16 h-16 text-indigo-300 dark:text-indigo-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                         </svg>
-                        <p class="text-gray-600 dark:text-gray-400">ここにPDFファイル(複数可)またはフォルダをドラッグ＆ドロップ</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">または</p>
+                        <p class="text-gray-600 dark:text-gray-400 font-semibold">ここにPDFファイル(複数可)またはフォルダをドラッグ＆ドロップ</p>
+                        <p class="text-sm text-gray-500 mt-2">または</p>
                         <div class="mt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
-                            <button id="select-file-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors w-full sm:w-auto">
+                            <button id="select-file-btn" class="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg transition-all duration-200 transform hover:scale-105">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
                                 ファイルを選択
                             </button>
-                            <button id="select-folder-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-colors w-full sm:w-auto">
+                            <button id="select-folder-btn" class="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-5 rounded-lg transition-all duration-200 transform hover:scale-105">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
                                 フォルダを選択
                             </button>
                         </div>
@@ -51,21 +93,16 @@
                         <p id="folder-support-note" class="text-xs text-gray-400 dark:text-gray-500 mt-3 hidden">※フォルダ機能はChromeやEdgeなどの一部ブラウザでのみ対応しています。</p>
                     </div>
                 </div>
-                <div class="text-center mt-4">
-                     <button id="demo-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">
-                        デモ用PDF (20ページ) で試す
-                    </button>
-                </div>
-                <p id="file-name" class="mt-4 text-center text-gray-700 dark:text-gray-300"></p>
+                <p id="file-name" class="mt-4 text-center text-gray-700 dark:text-gray-300 h-6"></p>
             </section>
 
             <!-- 2. 設定 -->
-            <section class="mt-8">
-                <h2 class="text-xl font-semibold mb-4 border-b pb-2 dark:border-gray-600">2. 設定</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <section>
+                <h2 class="text-xl font-semibold mb-4 flex items-center text-gray-700 dark:text-gray-200"><span class="bg-indigo-500 text-white rounded-full h-8 w-8 text-sm flex items-center justify-center mr-3">2</span>設定</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 dark:bg-gray-700/50 p-6 rounded-xl">
                     <div>
-                        <label for="layout" class="block text-sm font-medium text-gray-700 dark:text-gray-300">レイアウト</label>
-                        <select id="layout" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700">
+                        <label for="layout" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">レイアウト</label>
+                        <select id="layout" class="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700">
                             <option value="1x2">1x2 (2ページ/枚)</option>
                             <option value="2x2">2x2 (4ページ/枚)</option>
                             <option value="2x3">2x3 (6ページ/枚)</option>
@@ -74,41 +111,41 @@
                         </select>
                     </div>
                     <div>
-                        <label for="margin" class="block text-sm font-medium text-gray-700 dark:text-gray-300">余白 (mm)</label>
-                        <input type="number" id="margin" value="10" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700">
+                        <label for="margin" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">余白 (mm)</label>
+                        <input type="number" id="margin" value="10" class="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700">
                     </div>
                     <div>
-                        <label for="gutter" class="block text-sm font-medium text-gray-700 dark:text-gray-300">セル間隔 (mm)</label>
-                        <input type="number" id="gutter" value="5" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700">
+                        <label for="gutter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">セル間隔 (mm)</label>
+                        <input type="number" id="gutter" value="5" class="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700">
                     </div>
                 </div>
             </section>
 
             <!-- 3. 実行 -->
-            <section class="mt-8">
-                <h2 class="text-xl font-semibold mb-4 border-b pb-2 dark:border-gray-600">3. 実行</h2>
-                <button id="convert-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
-                    変換して保存
+            <section>
+                 <h2 class="text-xl font-semibold mb-4 flex items-center text-gray-700 dark:text-gray-200"><span class="bg-indigo-500 text-white rounded-full h-8 w-8 text-sm flex items-center justify-center mr-3">3</span>実行</h2>
+                <button id="convert-btn" class="w-full flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:scale-100 shadow-md disabled:shadow-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                    変換開始
                 </button>
             </section>
 
             <!-- 4. 進捗とログ -->
-            <section id="progress-section" class="mt-8 hidden">
-                <h2 class="text-xl font-semibold mb-4 border-b pb-2 dark:border-gray-600">4. 進捗状況</h2>
+            <section id="progress-section" class="hidden">
+                <h2 class="text-xl font-semibold mb-4 flex items-center text-gray-700 dark:text-gray-200"><span class="bg-indigo-500 text-white rounded-full h-8 w-8 text-sm flex items-center justify-center mr-3">4</span>進捗状況</h2>
                 <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full">
-                    <div id="progress-bar" class="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full" style="width: 0%">0%</div>
+                    <div id="progress-bar" class="bg-indigo-500 text-xs font-medium text-indigo-100 text-center p-1 leading-none rounded-full transition-all duration-300" style="width: 0%">0%</div>
                 </div>
                 <div class="mt-4">
                     <label for="log" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ログ</label>
-                    <pre id="log" class="mt-1 w-full h-48 bg-gray-900 text-white text-sm p-4 rounded-md overflow-y-auto font-mono"></pre>
+                    <pre id="log" class="mt-1 w-full h-48 bg-gray-900 text-white text-sm p-4 rounded-lg overflow-y-auto font-mono border border-gray-700"></pre>
                 </div>
             </section>
             
             <!-- エラー表示 -->
-            <div id="error-box" class="hidden mt-6 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 rounded-lg">
+            <div id="error-box" class="hidden mt-6 p-4 bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 rounded-lg">
                 <p id="error-message"></p>
             </div>
-
         </main>
 
         <footer class="text-center mt-8 text-sm text-gray-500 dark:text-gray-400">
@@ -127,7 +164,6 @@
         const selectFileBtn = document.getElementById('select-file-btn');
         const selectFolderBtn = document.getElementById('select-folder-btn');
         const folderSupportNote = document.getElementById('folder-support-note');
-        const demoBtn = document.getElementById('demo-btn');
         const fileNameDisplay = document.getElementById('file-name');
         const convertBtn = document.getElementById('convert-btn');
         const progressSection = document.getElementById('progress-section');
@@ -135,8 +171,10 @@
         const logArea = document.getElementById('log');
         const errorBox = document.getElementById('error-box');
         const errorMessage = document.getElementById('error-message');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
 
         let selectedFiles = []; // { file: File, relativePath: string }[]
+        let inputDirHandle = null; // 選択された入力フォルダのハンドル
 
         // --- 初期化処理 ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -146,23 +184,38 @@
                 selectFolderBtn.disabled = true;
                 selectFolderBtn.classList.add('opacity-50', 'cursor-not-allowed');
             }
+            
+            // ダークモードの初期設定
+            if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                darkModeToggle.checked = true;
+            } else {
+                document.documentElement.classList.remove('dark');
+                darkModeToggle.checked = false;
+            }
         });
 
         // --- イベントリスナーの設定 ---
+        darkModeToggle.addEventListener('change', () => {
+            if (darkModeToggle.checked) {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+        
         selectFileBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', (e) => handleFileSelection(e.target.files));
         selectFolderBtn.addEventListener('click', handleFolderSelection);
         dropArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.add('dragging'); });
         dropArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragging'); });
         dropArea.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragging'); handleDrop(e.dataTransfer); });
-        demoBtn.addEventListener('click', generateAndSelectDemo);
         convertBtn.addEventListener('click', startBatchProcess);
 
         // --- 関数定義 ---
 
-        /**
-         * フォルダ選択ダイアログを表示し、再帰的にPDFファイルを読み込む
-         */
         async function handleFolderSelection() {
             if (!('showDirectoryPicker' in window)) {
                 handleError('お使いのブラウザはフォルダ選択機能に対応していません。');
@@ -176,7 +229,7 @@
                 
                 if (filesWithPaths.length > 0) {
                     log(`${filesWithPaths.length}個のPDFファイルが見つかりました。`);
-                    updateSelectedFiles(filesWithPaths);
+                    updateSelectedFiles(filesWithPaths, dirHandle);
                 } else {
                     handleError(`フォルダ「${dirHandle.name}」内にPDFファイルが見つかりませんでした。`);
                 }
@@ -186,10 +239,6 @@
             }
         }
 
-        /**
-         * ファイル選択の結果を処理する
-         * @param {FileList} fileList 選択されたファイルのリスト
-         */
         function handleFileSelection(fileList) {
             const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
             if (pdfFiles.length === 0) {
@@ -197,61 +246,34 @@
                 return;
             }
             const filesToProcess = pdfFiles.map(f => ({ file: f, relativePath: f.name }));
-            updateSelectedFiles(filesToProcess);
+            updateSelectedFiles(filesToProcess, null);
         }
 
-        /**
-         * ドラッグ＆ドロップされたアイテムを処理する
-         * @param {DataTransfer} dataTransfer 
-         */
         async function handleDrop(dataTransfer) {
             if (dataTransfer.items && dataTransfer.items.length > 0 && typeof dataTransfer.items[0].webkitGetAsEntry === 'function') {
-                const entries = Array.from(dataTransfer.items).map(item => item.webkitGetAsEntry());
-                showProgress();
-                log('ドロップされたアイテムをスキャン中...');
-                const filesWithPaths = await getFilesFromEntries(entries);
-                if (filesWithPaths.length > 0) {
-                    log(`${filesWithPaths.length}個のPDFファイルが見つかりました。`);
-                    updateSelectedFiles(filesWithPaths);
-                } else {
-                    handleError('ドロップされたアイテムにPDFファイルが見つかりませんでした。');
-                }
-            } else {
-                handleFileSelection(dataTransfer.files);
-            }
-        }
-
-        /**
-         * FileSystemEntryから再帰的にファイルを取得する
-         * @param {FileSystemEntry[]} entries 
-         * @param {string} path 
-         * @returns {Promise<{file: File, relativePath: string}[]>}
-         */
-        async function getFilesFromEntries(entries, path = '') {
-            const allFiles = [];
-            for (const entry of entries) {
-                const newPath = path ? `${path}/${entry.name}` : entry.name;
-                if (entry.isFile) {
-                    const file = await new Promise(resolve => entry.file(resolve));
-                    if (file.name.toLowerCase().endsWith('.pdf')) {
-                        allFiles.push({ file, relativePath: newPath });
+                const entry = dataTransfer.items[0].webkitGetAsEntry();
+                if (entry.isDirectory) {
+                    try {
+                        const dirHandle = await navigator.storage.getDirectory();
+                        const dirHandleForDrop = await dirHandle.getDirectoryHandle(entry.fullPath.substring(1), { create: false });
+                        showProgress();
+                        log(`ドロップされたフォルダ「${entry.name}」をスキャン中...`);
+                        const filesWithPaths = await getFilesInDirectory(dirHandleForDrop);
+                        if (filesWithPaths.length > 0) {
+                            log(`${filesWithPaths.length}個のPDFファイルが見つかりました。`);
+                            updateSelectedFiles(filesWithPaths, dirHandleForDrop);
+                        } else {
+                            handleError('ドロップされたフォルダにPDFファイルが見つかりませんでした。');
+                        }
+                        return;
+                    } catch (e) {
+                         log('フォルダのドラッグ＆ドロップは、ローカルサーバー経由での実行時に最も安定して動作します。ファイル単位でのドロップを試してください。');
                     }
-                } else if (entry.isDirectory) {
-                    const reader = entry.createReader();
-                    const dirEntries = await new Promise(resolve => reader.readEntries(resolve));
-                    const subFiles = await getFilesFromEntries(dirEntries, newPath);
-                    allFiles.push(...subFiles);
                 }
             }
-            return allFiles;
+            handleFileSelection(dataTransfer.files);
         }
 
-        /**
-         * DirectoryHandleから再帰的にファイルを取得する
-         * @param {FileSystemDirectoryHandle} dirHandle 
-         * @param {string} path 
-         * @returns {Promise<{file: File, relativePath: string}[]>}
-         */
         async function getFilesInDirectory(dirHandle, path = '') {
             const files = [];
             for await (const entry of dirHandle.values()) {
@@ -267,12 +289,10 @@
             return files;
         }
         
-        /**
-         * 選択されたファイルリストを更新し、UIに反映する
-         * @param {{file: File, relativePath: string}[]} filesToProcess
-         */
-        function updateSelectedFiles(filesToProcess) {
+        function updateSelectedFiles(filesToProcess, dirHandle = null) {
             selectedFiles = filesToProcess;
+            inputDirHandle = dirHandle;
+
             if (selectedFiles.length === 1) {
                 fileNameDisplay.textContent = `選択中のファイル: ${selectedFiles[0].file.name}`;
             } else {
@@ -282,26 +302,6 @@
             hideError();
         }
 
-        /**
-         * デモ用PDFを生成して選択状態にする
-         */
-        async function generateAndSelectDemo() {
-            try {
-                showProgress();
-                log('デモ用PDFを生成中...');
-                const pdfBytes = await generateDemoPdf();
-                const demoFile = new File([pdfBytes], "demo.pdf", { type: "application/pdf" });
-                updateSelectedFiles([{ file: demoFile, relativePath: demoFile.name }]);
-                log('デモ用PDFの準備ができました。');
-            } catch (error) {
-                handleError('デモPDFの生成に失敗しました。', error);
-            }
-        }
-
-        /**
-         * ログエリアにメッセージを追記する
-         * @param {string} message 
-         */
         function log(message) {
             const timestamp = new Date().toLocaleTimeString();
             logArea.textContent += `[${timestamp}] ${message}\n`;
@@ -315,7 +315,11 @@
         }
 
         function showProgress() {
+            progressSection.classList.add('hidden', 'fade-in');
             progressSection.classList.remove('hidden');
+            // force reflow to restart animation
+            void progressSection.offsetWidth;
+            progressSection.classList.add('fade-in');
             logArea.textContent = '';
             updateProgress(0);
         }
@@ -332,56 +336,79 @@
             errorBox.classList.add('hidden');
         }
         
-        async function generateDemoPdf() {
-            const pdfDoc = await PDFDocument.create();
-            const pageCount = 20;
-            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        async function createNupPdfBytes(file) {
+            const layoutValue = document.getElementById('layout').value;
+            const [cols, rows] = layoutValue.split('x').map(Number);
+            const margin = parseFloat(document.getElementById('margin').value) * MM_TO_PT;
+            const gutter = parseFloat(document.getElementById('gutter').value) * MM_TO_PT;
+
+            const fileBuffer = await file.arrayBuffer();
+            const srcPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: false });
+
+            if (srcPdf.isEncrypted) throw new Error('暗号化されたPDFはサポートされていません。');
+
+            const pageCount = srcPdf.getPageCount();
+            log(`  元のページ数: ${pageCount}`);
+
+            const newPdf = await PDFDocument.create();
+            const embeddedPages = await newPdf.embedPages(srcPdf.getPages());
+            
+            const { width: srcWidth, height: srcHeight } = srcPdf.getPage(0).getSize();
+            const newPageWidth = (srcWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
+            const newPageHeight = (srcHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
+
             for (let i = 0; i < pageCount; i++) {
-                const page = pdfDoc.addPage();
-                const { width, height } = page.getSize();
-                page.drawText(`デモ用PDF - ${i + 1}ページ目`, { x: 50, y: height / 2, font, size: 50, color: rgb(0.9, 0.9, 0.9) });
+                const pageIndexInSheet = i % (cols * rows);
+                if (pageIndexInSheet === 0) newPdf.addPage([newPageWidth, newPageHeight]);
+                const currentPage = newPdf.getPage(newPdf.getPageCount() - 1);
+
+                const col = pageIndexInSheet % cols;
+                const row = Math.floor(pageIndexInSheet / cols);
+                const x = margin + col * (srcWidth + gutter);
+                const y = newPageHeight - margin - (row + 1) * srcHeight - row * gutter;
+
+                currentPage.drawPage(embeddedPages[i], { x, y, width: srcWidth, height: srcHeight });
+                updateProgress(((i + 1) / pageCount) * 100);
             }
-            return pdfDoc.save();
+
+            log('  PDFを生成中...');
+            return await newPdf.save();
         }
 
-        /**
-         * バッチ処理を開始する
-         */
         async function startBatchProcess() {
             if (selectedFiles.length === 0) {
                 handleError('ファイルが選択されていません。');
                 return;
             }
-
-            let outputDirHandle;
-            try {
-                if (!('showDirectoryPicker' in window)) {
-                    handleError('この機能はお使いのブラウザに対応していません。ファイルの保存に失敗します。');
-                    return;
-                }
-                showProgress();
-                log('出力先フォルダを選択してください...');
-                outputDirHandle = await window.showDirectoryPicker();
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    log('出力先フォルダの選択がキャンセルされました。処理を中断します。');
-                    if (logArea.textContent.length < 200) progressSection.classList.add('hidden');
-                } else {
-                    handleError('出力先フォルダの選択に失敗しました。', error);
-                }
-                return;
-            }
             
+            showProgress();
             hideError();
             convertBtn.disabled = true;
-            log(`処理を開始します... 合計 ${selectedFiles.length}個のファイル`);
 
-            for (let i = 0; i < selectedFiles.length; i++) {
-                const fileObject = selectedFiles[i];
-                log(`---`);
-                log(`[${i + 1}/${selectedFiles.length}] "${fileObject.relativePath}" の処理を開始`);
-                updateProgress(0);
-                await processSinglePdf(fileObject, outputDirHandle);
+            if (inputDirHandle) {
+                try {
+                    const outputFolderName = `${inputDirHandle.name}_面付け`;
+                    log(`出力先フォルダ「${outputFolderName}」を作成/準備しています...`);
+                    const outputDirHandle = await inputDirHandle.getDirectoryHandle(outputFolderName, { create: true });
+                    
+                    for (let i = 0; i < selectedFiles.length; i++) {
+                        const fileObject = selectedFiles[i];
+                        log(`---`);
+                        log(`[${i + 1}/${selectedFiles.length}] "${fileObject.relativePath}" の処理を開始`);
+                        updateProgress(0);
+                        await processAndSavePdf(fileObject, outputDirHandle);
+                    }
+                } catch (error) {
+                    handleError('出力フォルダの作成またはファイル保存に失敗しました。アクセス権限を確認してください。', error);
+                }
+            } else {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const fileObject = selectedFiles[i];
+                    log(`---`);
+                    log(`[${i + 1}/${selectedFiles.length}] "${fileObject.file.name}" の処理を開始`);
+                    updateProgress(0);
+                    await processAndDownloadPdf(fileObject);
+                }
             }
 
             log(`---`);
@@ -389,54 +416,15 @@
             convertBtn.disabled = false;
         }
 
-        /**
-         * 単一のPDFファイルを処理し、指定されたフォルダに保存する
-         * @param {{file: File, relativePath: string}} fileObject 
-         * @param {FileSystemDirectoryHandle} outputDirHandle 
-         */
-        async function processSinglePdf(fileObject, outputDirHandle) {
+        async function processAndSavePdf(fileObject, outputDirHandle) {
             const { file, relativePath } = fileObject;
             try {
+                const newPdfBytes = await createNupPdfBytes(file);
+
                 const layoutValue = document.getElementById('layout').value;
-                const [cols, rows] = layoutValue.split('x').map(Number);
-                const margin = parseFloat(document.getElementById('margin').value) * MM_TO_PT;
-                const gutter = parseFloat(document.getElementById('gutter').value) * MM_TO_PT;
-
-                const fileBuffer = await file.arrayBuffer();
-                const srcPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: false });
-
-                if (srcPdf.isEncrypted) throw new Error('暗号化されたPDFはサポートされていません。');
-
-                const pageCount = srcPdf.getPageCount();
-                log(`  元のページ数: ${pageCount}`);
-
-                const newPdf = await PDFDocument.create();
-                const embeddedPages = await newPdf.embedPages(srcPdf.getPages());
-                
-                const { width: srcWidth, height: srcHeight } = srcPdf.getPage(0).getSize();
-                const newPageWidth = (srcWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
-                const newPageHeight = (srcHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
-
-                for (let i = 0; i < pageCount; i++) {
-                    const pageIndexInSheet = i % (cols * rows);
-                    if (pageIndexInSheet === 0) newPdf.addPage([newPageWidth, newPageHeight]);
-                    const currentPage = newPdf.getPage(newPdf.getPageCount() - 1);
-
-                    const col = pageIndexInSheet % cols;
-                    const row = Math.floor(pageIndexInSheet / cols);
-                    const x = margin + col * (srcWidth + gutter);
-                    const y = newPageHeight - margin - (row + 1) * srcHeight - row * gutter;
-
-                    currentPage.drawPage(embeddedPages[i], { x, y, width: srcWidth, height: srcHeight });
-                    updateProgress(((i + 1) / pageCount) * 100);
-                }
-
-                log('  PDFを生成中...');
-                const newPdfBytes = await newPdf.save();
-
-                // --- ファイル保存処理 ---
                 const suffix = `_${layoutValue}.pdf`;
                 const newFileName = file.name.replace(/\.pdf$/i, '') + suffix;
+                
                 const pathParts = relativePath.split('/');
                 pathParts.pop();
 
@@ -445,12 +433,39 @@
                     currentDirHandle = await currentDirHandle.getDirectoryHandle(part, { create: true });
                 }
 
-                log(`  ファイルを保存中: ${[...pathParts, newFileName].join('/')}`);
+                log(`  ファイルを保存中: ${[outputDirHandle.name, ...pathParts, newFileName].join('/')}`);
                 const fileHandle = await currentDirHandle.getFileHandle(newFileName, { create: true });
                 const writable = await fileHandle.createWritable();
                 await writable.write(newPdfBytes);
                 await writable.close();
                 log(`  保存が完了しました。`);
+
+            } catch (error) {
+                handleError(`"${file.name}" の処理に失敗しました。${error.message}`, error);
+            }
+        }
+
+        async function processAndDownloadPdf(fileObject) {
+            const { file } = fileObject;
+            try {
+                const newPdfBytes = await createNupPdfBytes(file);
+                
+                const layoutValue = document.getElementById('layout').value;
+                const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const suffix = `_${layoutValue}.pdf`;
+                a.download = file.name.replace(/\.pdf$/i, '') + suffix;
+                document.body.appendChild(a);
+                a.click();
+                
+                log(`  "${a.download}" のダウンロードを開始しました。`);
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
 
             } catch (error) {
                 handleError(`"${file.name}" の処理に失敗しました。${error.message}`, error);
