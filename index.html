@@ -100,13 +100,22 @@
                             <p class="text-gray-500 dark:text-gray-400">横向きのページを自動で回転させ、向きを統一します。</p>
                         </div>
                     </div>
+                    <div class="relative flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="enable-preview" name="enable-preview" type="checkbox" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="enable-preview" class="font-medium text-gray-700 dark:text-gray-300">変換前にプレビューを表示する</label>
+                            <p class="text-gray-500 dark:text-gray-400">チェックを入れると、変換前にレイアウトのプレビューを確認できます。</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <!-- 3. 実行 -->
             <section>
                  <h2 class="text-xl font-semibold mb-4 flex items-center text-gray-700 dark:text-gray-200"><span class="bg-blue-500 text-white rounded-full h-8 w-8 text-sm flex items-center justify-center mr-3">3</span>実行</h2>
-                <button id="preview-btn" class="w-full flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>プレビューして変換</button>
+                <button id="convert-btn" class="w-full flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" /></svg>PDF変換を実行</button>
             </section>
 
             <!-- 4. 進捗とログ -->
@@ -162,7 +171,7 @@
         const selectFolderBtn = document.getElementById('select-folder-btn');
         const folderSupportNote = document.getElementById('folder-support-note');
         const fileInfo = document.getElementById('file-info');
-        const previewBtn = document.getElementById('preview-btn');
+        const convertBtn = document.getElementById('convert-btn');
         const progressSection = document.getElementById('progress-section');
         const progressBar = document.getElementById('progress-bar');
         const progressDetails = document.getElementById('progress-details');
@@ -171,6 +180,7 @@
         const errorMessage = document.getElementById('error-message');
         const darkModeToggle = document.getElementById('dark-mode-toggle');
         const autoRotateCheckbox = document.getElementById('auto-rotate');
+        const enablePreviewCheckbox = document.getElementById('enable-preview');
         const previewModal = document.getElementById('preview-modal');
         const previewCanvas = document.getElementById('preview-canvas');
         const cancelPreviewBtn = document.getElementById('cancel-preview-btn');
@@ -217,7 +227,7 @@
         dropArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.add('dragging'); });
         dropArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragging'); });
         dropArea.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragging'); handleDrop(e.dataTransfer); });
-        previewBtn.addEventListener('click', showPreview);
+        convertBtn.addEventListener('click', handleConvertButtonClick);
         cancelPreviewBtn.addEventListener('click', () => previewModal.classList.add('hidden'));
         confirmConvertBtn.addEventListener('click', () => {
             previewModal.classList.add('hidden');
@@ -324,8 +334,18 @@
             } else {
                 fileInfo.textContent = '';
             }
-            previewBtn.disabled = selectedFiles.length === 0;
+            convertBtn.disabled = selectedFiles.length === 0;
             hideError();
+        }
+
+        function handleConvertButtonClick() {
+            if (selectedFiles.length === 0) return;
+            
+            if (enablePreviewCheckbox.checked) {
+                showPreview();
+            } else {
+                startBatchProcess();
+            }
         }
 
         async function showPreview() {
@@ -396,7 +416,7 @@
             errorBox.classList.remove('hidden');
             if (error) console.error(error);
             log(`エラー: ${message}`);
-            previewBtn.disabled = false;
+            convertBtn.disabled = false;
         }
 
         function hideError() {
@@ -459,7 +479,7 @@
             }
             showProgress();
             hideError();
-            previewBtn.disabled = true;
+            convertBtn.disabled = true;
             let totalOutputSize = 0;
             const startTime = Date.now();
 
@@ -512,7 +532,7 @@
             log('すべてのファイルの処理が完了しました！');
             const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
             progressDetails.textContent = `完了！ 入力合計: ${formatBytes(totalInputSize)} → 出力合計: ${formatBytes(totalOutputSize)}`;
-            previewBtn.disabled = false;
+            convertBtn.disabled = false;
 
             if (failedFiles.length > 0) {
                 renderFailedFiles();
