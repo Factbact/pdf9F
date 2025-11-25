@@ -7,10 +7,6 @@
     <title>PDF面付け変換ツール (N-up)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -282,20 +278,9 @@
                             ※フォルダ機能はChrome/Edge等で対応</p>
                     </div>
                 </div>
-
-                <!-- File List with Thumbnails -->
-                <div id="file-list-container" class="mt-8 hidden">
-                    <h3
-                        class="text-lg font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center justify-between">
-                        <span>選択されたファイル</span>
-                        <span id="file-count-badge"
-                            class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-200 dark:text-blue-800">0</span>
-                    </h3>
-                    <div id="file-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <!-- File cards will be injected here -->
-                    </div>
+                <div id="file-info"
+                    class="mt-4 text-center text-slate-600 dark:text-slate-400 font-medium h-6 transition-all duration-300">
                 </div>
-                <div id="file-info" class="hidden"></div> <!-- Kept for compatibility but hidden -->
             </section>
 
             <!-- 2. 設定 -->
@@ -510,9 +495,6 @@
         const selectFolderBtn = document.getElementById('select-folder-btn');
         const folderSupportNote = document.getElementById('folder-support-note');
         const fileInfo = document.getElementById('file-info');
-        const fileListContainer = document.getElementById('file-list-container');
-        const fileGrid = document.getElementById('file-grid');
-        const fileCountBadge = document.getElementById('file-count-badge');
         const convertBtn = document.getElementById('convert-btn');
         const progressSection = document.getElementById('progress-section');
         const progressBar = document.getElementById('progress-bar');
@@ -616,6 +598,15 @@
 
         // --- 関数定義 ---
 
+        function getVisualSize(page) {
+            const size = page.getSize();
+            const rotation = page.getRotation().angle;
+            if (rotation % 180 === 90) {
+                return { width: size.height, height: size.width };
+            }
+            return size;
+        }
+
         function formatBytes(bytes, decimals = 2) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -698,103 +689,18 @@
         }
 
         function updateSelectedFiles(filesToProcess, dirHandle = null) {
-            // Initialize with rotation: 0
-            selectedFiles = filesToProcess.map(f => ({ ...f, id: crypto.randomUUID(), rotation: 0 }));
+            selectedFiles = filesToProcess.map(f => ({ ...f, id: crypto.randomUUID() }));
             inputDirHandle = dirHandle;
-
-            renderFileList();
-
+            const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
+            if (selectedFiles.length === 1) {
+                fileInfo.textContent = `選択中のファイル: ${selectedFiles[0].file.name} (${formatBytes(totalInputSize)})`;
+            } else if (selectedFiles.length > 1) {
+                fileInfo.textContent = `${selectedFiles.length}個のファイルを選択中 (合計 ${formatBytes(totalInputSize)})`;
+            } else {
+                fileInfo.textContent = '';
+            }
             convertBtn.disabled = selectedFiles.length === 0;
             hideError();
-        }
-
-        function renderFileList() {
-            if (selectedFiles.length === 0) {
-                fileListContainer.classList.add('hidden');
-                fileInfo.textContent = '';
-                return;
-            }
-
-            fileListContainer.classList.remove('hidden');
-            fileCountBadge.textContent = selectedFiles.length;
-            fileGrid.innerHTML = '';
-
-            selectedFiles.forEach((fileObj, index) => {
-                const card = document.createElement('div');
-                card.className = 'bg-white dark:bg-slate-700 rounded-xl shadow-sm border border-slate-200 dark:border-slate-600 overflow-hidden flex flex-col group relative';
-
-                // Thumbnail Container
-                const thumbContainer = document.createElement('div');
-                thumbContainer.className = 'relative aspect-[3/4] bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden';
-
-                const canvas = document.createElement('canvas');
-                canvas.id = `thumb-${fileObj.id}`;
-                canvas.className = 'max-w-full max-h-full object-contain transition-transform duration-300';
-
-                thumbContainer.appendChild(canvas);
-
-                // Rotate Button (Overlay)
-                const rotateBtn = document.createElement('button');
-                rotateBtn.className = 'absolute bottom-2 right-2 p-2 bg-white/90 dark:bg-slate-800/90 rounded-full shadow-md hover:bg-blue-50 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100';
-                rotateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 111 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" /></svg>`;
-                rotateBtn.title = '右に90度回転';
-                rotateBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    rotateFile(index);
-                };
-
-                thumbContainer.appendChild(rotateBtn);
-
-                // Info
-                const info = document.createElement('div');
-                info.className = 'p-3 text-xs';
-                info.innerHTML = `<p class="font-medium truncate text-slate-700 dark:text-slate-200" title="${fileObj.file.name}">${fileObj.file.name}</p>`;
-
-                card.appendChild(thumbContainer);
-                card.appendChild(info);
-                fileGrid.appendChild(card);
-
-                // Generate Thumbnail
-                generateThumbnail(fileObj, canvas);
-            });
-        }
-
-        async function generateThumbnail(fileObj, canvas) {
-            try {
-                const arrayBuffer = await fileObj.file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-                const page = await pdf.getPage(1);
-
-                // Use a scale that fits the thumbnail size roughly
-                const viewport = page.getViewport({ scale: 0.5, rotation: fileObj.rotation });
-
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-
-                await page.render({
-                    canvasContext: context,
-                    viewport: viewport
-                }).promise;
-            } catch (e) {
-                console.error('Thumbnail generation failed', e);
-                // Fallback or error indication
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#f1f5f9';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#94a3b8';
-                ctx.font = '12px sans-serif';
-                ctx.fillText('Preview N/A', 10, 20);
-            }
-        }
-
-        function rotateFile(index) {
-            selectedFiles[index].rotation = (selectedFiles[index].rotation + 90) % 360;
-            const fileObj = selectedFiles[index];
-            const canvas = document.getElementById(`thumb-${fileObj.id}`);
-            if (canvas) {
-                generateThumbnail(fileObj, canvas);
-            }
         }
 
         function handleConvertButtonClick() {
@@ -813,22 +719,17 @@
             const [cols, rows] = document.getElementById('layout').value.split('x').map(Number);
             const margin = parseFloat(document.getElementById('margin').value) * MM_TO_PT;
             const gutter = parseFloat(document.getElementById('gutter').value) * MM_TO_PT;
-            const firstFileObj = selectedFiles[0];
-            const firstFile = firstFileObj.file;
+            const firstFile = selectedFiles[0].file;
 
             const fileBuffer = await firstFile.arrayBuffer();
             const pdfDoc = await PDFDocument.load(fileBuffer);
             const firstPage = pdfDoc.getPage(0);
-
-            // Apply rotation to preview as well
-            if (firstFileObj.rotation !== 0) {
-                firstPage.setRotation(degrees(firstPage.getRotation().angle + firstFileObj.rotation));
-            }
-
             let { width, height } = firstPage.getSize();
 
-            if (autoRotateCheckbox.checked && width > height) {
-                [width, height] = [height, width];
+            if (autoRotateCheckbox.checked) {
+                const visualSize = getVisualSize(firstPage);
+                width = visualSize.width;
+                height = visualSize.height;
             }
 
             const newPageWidth = (width * cols) + (gutter * (cols - 1)) + (margin * 2);
@@ -902,10 +803,11 @@
 
             const pages = srcPdf.getPages();
             if (autoRotateCheckbox.checked && pages.length > 0) {
-                const firstPageSize = pages[0].getSize();
+                const firstPageSize = getVisualSize(pages[0]);
                 const isFirstPagePortrait = firstPageSize.height > firstPageSize.width;
+
                 for (const page of pages) {
-                    const size = page.getSize();
+                    const size = getVisualSize(page);
                     const isCurrentPagePortrait = size.height > size.width;
                     if (isFirstPagePortrait !== isCurrentPagePortrait) {
                         page.setRotation(degrees(page.getRotation().angle + 90));
