@@ -892,7 +892,8 @@
 
                 // Embed page dimensions
                 const embeddedPage = embeddedPages[i];
-                const rotation = embeddedPage.getRotation().angle;
+                const originalPage = pages[i];
+                const rotation = originalPage.getRotation().angle;
                 const isRotated = rotation % 180 === 90;
 
                 // Calculate scale based on visual dimensions
