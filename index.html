@@ -362,6 +362,28 @@
                                     class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">チェックを入れると、変換前にレイアウトのプレビューを確認できます。</span>
                             </div>
                         </label>
+
+                        <div class="group">
+                            <label for="manual-rotate"
+                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">手動回転
+                                (全ページ)</label>
+                            <div class="relative">
+                                <select id="manual-rotate"
+                                    class="appearance-none w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all cursor-pointer hover:border-blue-400">
+                                    <option value="0" selected>回転なし (0°)</option>
+                                    <option value="90">時計回りに90°回転</option>
+                                    <option value="180">180°回転</option>
+                                    <option value="270">時計回りに270°回転</option>
+                                </select>
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -744,17 +766,35 @@
             ctx.strokeStyle = '#e5e7eb';
             ctx.lineWidth = 1;
 
+            const manualRotation = parseInt(document.getElementById('manual-rotate').value, 10);
+
             for (let i = 0; i < Math.min(cols * rows, pdfDoc.getPageCount()); i++) {
                 const col = i % cols;
                 const row = Math.floor(i / cols);
                 const x = margin + col * (width + gutter);
                 const y = margin + row * (height + gutter);
+
+                // Draw cell border
                 ctx.strokeRect(x, y, width, height);
+
+                // Calculate scaled dimensions to fit in the cell while preserving aspect ratio
+                let pageW = width;
+                let pageH = height;
+
+                // Note: For preview, we simplify and just show the box. 
+                // To show actual page content with rotation would require rendering PDF to canvas which is complex here.
+                // Instead, we'll just indicate the rotation text.
+
                 ctx.font = '24px sans-serif';
                 ctx.fillStyle = '#9ca3af';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(`Page ${i + 1}`, x + width / 2, y + height / 2);
+
+                let label = `Page ${i + 1}`;
+                if (manualRotation > 0) {
+                    label += ` (+${manualRotation}°)`;
+                }
+                ctx.fillText(label, x + width / 2, y + height / 2);
             }
         }
 
@@ -815,15 +855,29 @@
                 }
             }
 
+            const manualRotation = parseInt(document.getElementById('manual-rotate').value, 10);
+
+            // Apply manual rotation if set
+            if (manualRotation > 0) {
+                for (const page of pages) {
+                    page.setRotation(degrees(page.getRotation().angle + manualRotation));
+                }
+            }
+
             const pageCount = srcPdf.getPageCount();
             log(`  元のページ数: ${pageCount}`);
 
             const newPdf = await PDFDocument.create();
             const embeddedPages = await newPdf.embedPages(srcPdf.getPages());
 
-            const { width: srcWidth, height: srcHeight } = embeddedPages[0];
-            const newPageWidth = (srcWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
-            const newPageHeight = (srcHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
+            // Use the first page's visual dimensions for the grid cell size
+            // (After auto-rotate and manual-rotate have been applied to the source pages)
+            const firstPageVisualSize = getVisualSize(pages[0]);
+            const cellWidth = firstPageVisualSize.width;
+            const cellHeight = firstPageVisualSize.height;
+
+            const newPageWidth = (cellWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
+            const newPageHeight = (cellHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
 
             for (let i = 0; i < pageCount; i++) {
                 const pageIndexInSheet = i % (cols * rows);
@@ -831,9 +885,75 @@
                 const currentPage = newPdf.getPage(newPdf.getPageCount() - 1);
                 const col = pageIndexInSheet % cols;
                 const row = Math.floor(pageIndexInSheet / cols);
-                const x = margin + col * (srcWidth + gutter);
-                const y = newPageHeight - margin - (row + 1) * srcHeight - row * gutter;
-                currentPage.drawPage(embeddedPages[i], { x, y, width: srcWidth, height: srcHeight });
+
+                // Cell position (top-left of the cell)
+                const cellX = margin + col * (cellWidth + gutter);
+                const cellY = newPageHeight - margin - (row + 1) * cellHeight - row * gutter;
+
+                // Embed page dimensions
+                const embeddedPage = embeddedPages[i];
+                const rotation = embeddedPage.getRotation().angle;
+                const isRotated = rotation % 180 === 90;
+
+                // Calculate scale based on visual dimensions
+                // If rotated, visual width is height, visual height is width
+                const visualPageWidth = isRotated ? embeddedPage.height : embeddedPage.width;
+                const visualPageHeight = isRotated ? embeddedPage.width : embeddedPage.height;
+
+                const scale = Math.min(cellWidth / visualPageWidth, cellHeight / visualPageHeight);
+
+                const drawnWidth = embeddedPage.width * scale;
+                const drawnHeight = embeddedPage.height * scale;
+
+                // Visual dimensions of the drawn page
+                const drawnVisualWidth = isRotated ? drawnHeight : drawnWidth;
+                const drawnVisualHeight = isRotated ? drawnWidth : drawnHeight;
+
+                // Center the page in the cell
+                const x = cellX + (cellWidth - drawnVisualWidth) / 2;
+                const y = cellY + (cellHeight - drawnVisualHeight) / 2;
+
+                // Adjust x/y for rotation if necessary?
+                // pdf-lib drawPage draws relative to the bottom-left of the transformed page?
+                // Actually, if we just pass x,y,width,height, pdf-lib handles the rotation within that box?
+                // No, pdf-lib rotates around the origin (x,y).
+                // If we draw at x,y with rotation 90, the page will extend from x,y upwards (or leftwards/rightwards depending on coord system).
+                // This is getting complicated. 
+                // However, `embedPages` usually normalizes rotation? 
+                // No, `embedPages` keeps the rotation.
+                // If we use `drawPage` on a rotated page, we might need to adjust the anchor point.
+                // BUT, for N-up, usually we want to draw it "upright" relative to the cell?
+                // If the user manually rotated it, they want it rotated.
+                // If the page was ALREADY rotated (e.g. Landscape), we want to draw it as Landscape.
+
+                // Let's assume pdf-lib's drawPage handles the content rotation.
+                // If we calculate x,y as the bottom-left of the VISUAL box, we need to know where drawPage expects x,y.
+                // If rotation is 90:
+                // Visual Box: (x,y) to (x+H, y+W).
+                // drawPage(x, y) with rot 90 draws from (x,y) to (x+W, y) [rotated]?
+                // If rot 90, (x,y) is the bottom-right of the visual box?
+                // Rot 0: x,y is bottom-left.
+                // Rot 90: x,y is bottom-right? (x+W, y)?
+                // Rot 180: x,y is top-right?
+                // Rot 270: x,y is top-left?
+
+                // To be safe, we can use the `rotate` option in `drawPage` to override? 
+                // No, we want to respect the embedded page's rotation.
+
+                // Let's try to adjust x,y based on rotation to align the visual box.
+                let drawX = x;
+                let drawY = y;
+
+                if (rotation === 90) {
+                    drawX += drawnVisualWidth;
+                } else if (rotation === 180) {
+                    drawX += drawnVisualWidth;
+                    drawY += drawnVisualHeight;
+                } else if (rotation === 270) {
+                    drawY += drawnVisualHeight;
+                }
+
+                currentPage.drawPage(embeddedPage, { x: drawX, y: drawY, width: drawnWidth, height: drawnHeight });
                 updateProgress(((i + 1) / pageCount) * 100);
             }
 
