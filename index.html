@@ -12,6 +12,10 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
         rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -281,6 +285,7 @@
                 <div id="file-info"
                     class="mt-4 text-center text-slate-600 dark:text-slate-400 font-medium h-6 transition-all duration-300">
                 </div>
+                <ul id="file-list-container" class="mt-6 space-y-2 max-h-60 overflow-y-auto custom-scrollbar px-2"></ul>
             </section>
 
             <!-- 2. 設定 -->
@@ -518,6 +523,7 @@
         const folderSupportNote = document.getElementById('folder-support-note');
         const fileInfo = document.getElementById('file-info');
         const convertBtn = document.getElementById('convert-btn');
+        const fileListContainer = document.getElementById('file-list-container');
         const progressSection = document.getElementById('progress-section');
         const progressBar = document.getElementById('progress-bar');
         const progressDetails = document.getElementById('progress-details');
@@ -710,10 +716,11 @@
             return files;
         }
 
-        function updateSelectedFiles(filesToProcess, dirHandle = null) {
+        async function updateSelectedFiles(filesToProcess, dirHandle = null) {
             selectedFiles = filesToProcess.map(f => ({ ...f, id: crypto.randomUUID() }));
             inputDirHandle = dirHandle;
             const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
+
             if (selectedFiles.length === 1) {
                 fileInfo.textContent = `選択中のファイル: ${selectedFiles[0].file.name} (${formatBytes(totalInputSize)})`;
             } else if (selectedFiles.length > 1) {
@@ -721,6 +728,85 @@
             } else {
                 fileInfo.textContent = '';
             }
+
+            // Populate file list with orientation
+            fileListContainer.innerHTML = '';
+
+            if (selectedFiles.length > 0) {
+                // Show loading state if many files?
+                // For now, just process.
+
+                for (const fileObj of selectedFiles) {
+                    const li = document.createElement('li');
+                    li.className = 'bg-white dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm animate-fade-in';
+
+                    const leftDiv = document.createElement('div');
+                    leftDiv.className = 'flex items-center gap-3 overflow-hidden';
+
+                    // Thumbnail Container
+                    const thumbDiv = document.createElement('div');
+                    thumbDiv.className = 'w-12 h-16 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200 dark:border-slate-500 relative';
+
+                    // Canvas for thumbnail
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'w-full h-full object-contain';
+                    thumbDiv.appendChild(canvas);
+
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'truncate';
+                    textDiv.innerHTML = `<div class="font-medium text-slate-700 dark:text-slate-200 truncate" title="${fileObj.relativePath}">${fileObj.relativePath}</div><div class="text-xs text-slate-500 dark:text-slate-400">${formatBytes(fileObj.file.size)}</div>`;
+
+                    leftDiv.appendChild(thumbDiv);
+                    leftDiv.appendChild(textDiv);
+
+                    const rightDiv = document.createElement('div');
+                    rightDiv.className = 'flex-shrink-0 ml-4';
+
+                    // Render Thumbnail & Check Orientation
+                    (async () => {
+                        try {
+                            const arrayBuffer = await fileObj.file.arrayBuffer();
+
+                            // 1. Render Thumbnail with pdf.js
+                            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                            const pdfDoc = await loadingTask.promise;
+                            const page = await pdfDoc.getPage(1);
+
+                            const viewport = page.getViewport({ scale: 0.5 }); // Scale down for thumbnail
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+
+                            const renderContext = {
+                                canvasContext: canvas.getContext('2d'),
+                                viewport: viewport
+                            };
+                            await page.render(renderContext).promise;
+
+                            // 2. Check Orientation (using pdf.js viewport, which handles rotation)
+                            // viewport.width/height are the visual dimensions.
+                            const isPortrait = viewport.height > viewport.width;
+
+                            const badgeClass = isPortrait
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
+                            const icon = isPortrait
+                                ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>'
+                                : '<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2z" /></svg>';
+
+                            rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}">${icon}${isPortrait ? '縦向き' : '横向き'}</span>`;
+                        } catch (e) {
+                            console.error(e);
+                            rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">読込エラー</span>`;
+                            thumbDiv.innerHTML = '<span class="text-xs text-slate-400">Error</span>';
+                        }
+                    })();
+
+                    li.appendChild(leftDiv);
+                    li.appendChild(rightDiv);
+                    fileListContainer.appendChild(li);
+                }
+            }
+
             convertBtn.disabled = selectedFiles.length === 0;
             hideError();
         }
