@@ -209,24 +209,22 @@
             <!-- ダークモードトグル -->
             <div
                 class="flex items-center gap-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
-                <button id="theme-btn-light"
-                    class="p-2 rounded-full text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-slate-700 transition-all"
-                    aria-label="ライトモード">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <button id="theme-toggle-btn"
+                    class="p-3 rounded-full text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-slate-700 transition-all"
+                    aria-label="テーマ切り替え">
+                    <!-- Sun Icon (shown in dark mode) -->
+                    <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden"
+                        viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd"
                             d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
                             clip-rule="evenodd" />
                     </svg>
-                </button>
-                <button id="theme-btn-dark"
-                    class="p-2 rounded-full text-slate-400 hover:text-blue-400 hover:bg-blue-900/30 dark:hover:bg-slate-700 transition-all"
-                    aria-label="ダークモード">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <!-- Moon Icon (shown in light mode) -->
+                    <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20"
+                        fill="currentColor">
                         <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
                     </svg>
                 </button>
-                <!-- Hidden checkbox for logic compatibility -->
-                <input type="checkbox" id="dark-mode-toggle" class="hidden">
             </div>
         </header>
 
@@ -253,7 +251,8 @@
                                     d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                             </svg>
                         </div>
-                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2">PDFファイルをここにドラッグ＆ドロップ</p>
+                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2">
+                            PDFファイルをここにドラッグ＆ドロップ</p>
                         <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">または、以下のボタンから選択してください</p>
 
                         <div class="flex flex-col sm:flex-row justify-center items-center gap-4 w-full sm:w-auto">
@@ -534,9 +533,10 @@
         const errorMessage = document.getElementById('error-message');
 
         // ダークモード関連要素
-        const themeBtnLight = document.getElementById('theme-btn-light');
-        const themeBtnDark = document.getElementById('theme-btn-dark');
-        const darkModeToggle = document.getElementById('dark-mode-toggle'); // 状態管理用の非表示チェックボックス
+        // ダークモード関連要素
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const themeIconSun = document.getElementById('theme-icon-sun');
+        const themeIconMoon = document.getElementById('theme-icon-moon');
 
         const autoRotateCheckbox = document.getElementById('auto-rotate');
         const enablePreviewCheckbox = document.getElementById('enable-preview');
@@ -578,33 +578,35 @@
             if (theme === 'dark') {
                 document.documentElement.classList.add('dark');
                 localStorage.setItem('theme', 'dark');
-                darkModeToggle.checked = true;
-                updateThemeButtons('dark');
+                updateThemeIcon('dark');
             } else {
                 document.documentElement.classList.remove('dark');
                 localStorage.setItem('theme', 'light');
-                darkModeToggle.checked = false;
-                updateThemeButtons('light');
+                updateThemeIcon('light');
             }
         }
 
-        function updateThemeButtons(theme) {
+        function updateThemeIcon(theme) {
             if (theme === 'dark') {
-                themeBtnDark.classList.add('text-blue-400', 'bg-blue-900/30');
-                themeBtnDark.classList.remove('text-slate-400');
-                themeBtnLight.classList.remove('text-yellow-500', 'bg-yellow-50');
-                themeBtnLight.classList.add('text-slate-400');
+                themeIconSun.classList.remove('hidden');
+                themeIconMoon.classList.add('hidden');
+                themeToggleBtn.classList.add('text-yellow-500', 'bg-yellow-50/10');
+                themeToggleBtn.classList.remove('text-slate-400');
             } else {
-                themeBtnLight.classList.add('text-yellow-500', 'bg-yellow-50');
-                themeBtnLight.classList.remove('text-slate-400');
-                themeBtnDark.classList.remove('text-blue-400', 'bg-blue-900/30');
-                themeBtnDark.classList.add('text-slate-400');
+                themeIconSun.classList.add('hidden');
+                themeIconMoon.classList.remove('hidden');
+                themeToggleBtn.classList.remove('text-yellow-500', 'bg-yellow-50/10');
+                themeToggleBtn.classList.add('text-slate-400');
             }
         }
+
+
 
         // --- イベントリスナー ---
-        themeBtnLight.addEventListener('click', () => setTheme('light'));
-        themeBtnDark.addEventListener('click', () => setTheme('dark'));
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
 
         selectFileBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', (e) => handleFileSelection(e.target.files));
@@ -850,75 +852,148 @@
         async function showPreview() {
             if (selectedFiles.length === 0) return;
             previewModal.classList.remove('hidden');
+
+            // キャンバスのコンテキスト取得とクリア
+            const canvas = previewCanvas;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // ローディング表示（簡易的）
+            ctx.font = '20px sans-serif';
+            ctx.fillStyle = '#64748b';
+            ctx.textAlign = 'center';
+            ctx.fillText('Generating Preview...', canvas.width / 2, canvas.height / 2);
+
             const [cols, rows] = document.getElementById('layout').value.split('x').map(Number);
             const margin = parseFloat(document.getElementById('margin').value) * MM_TO_PT;
             const gutter = parseFloat(document.getElementById('gutter').value) * MM_TO_PT;
-            const firstFileObj = selectedFiles[0];
-            const firstFile = firstFileObj.file;
-
-            const fileBuffer = await firstFile.arrayBuffer();
-            const pdfDoc = await PDFDocument.load(fileBuffer);
-            const firstPage = pdfDoc.getPage(0);
-
-            // プレビュー用にファイルの回転を適用
-            const fileRotation = firstFileObj.rotation || 0;
-            if (fileRotation > 0) {
-                firstPage.setRotation(degrees(firstPage.getRotation().angle + fileRotation));
-            }
-
-            let { width, height } = getVisualSize(firstPage);
-
-            if (autoRotateCheckbox.checked) {
-                // 自動回転がオンの場合、最初のページを基準にすると仮定
-                // 既に回転させているので、現在の表示サイズを使用する
-                // (getVisualSizeが処理するので追加ロジックは不要)
-            }
-
-            const newPageWidth = (width * cols) + (gutter * (cols - 1)) + (margin * 2);
-            const newPageHeight = (height * rows) + (gutter * (rows - 1)) + (margin * 2);
-
-            const canvas = previewCanvas;
-            const ctx = canvas.getContext('2d');
-            canvas.width = newPageWidth;
-            canvas.height = newPageHeight;
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = '#e5e7eb';
-            ctx.lineWidth = 1;
-
             const manualRotation = parseInt(document.getElementById('manual-rotate').value, 10);
 
-            for (let i = 0; i < Math.min(cols * rows, pdfDoc.getPageCount()); i++) {
-                // ファイルが多い場合のローディング表示が必要であればここに追加
-                // 現状はそのまま処理
+            // 必要なページ数 (1シート分)
+            const maxPages = cols * rows;
+
+            // ページ情報を収集
+            let pagesToRender = [];
+            let cellWidth = 0;
+            let cellHeight = 0;
+            let firstPageFound = false;
+
+            for (const fileObj of selectedFiles) {
+                if (pagesToRender.length >= maxPages) break;
+                try {
+                    const arrayBuffer = await fileObj.file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const numPages = pdf.numPages;
+
+                    for (let i = 1; i <= numPages; i++) {
+                        if (pagesToRender.length >= maxPages) break;
+
+                        const page = await pdf.getPage(i);
+
+                        // 個別回転を考慮したビューポートを取得
+                        // pdf.jsのrotationは90度単位。fileObj.rotationも90度単位と仮定。
+                        const fileRotation = fileObj.rotation || 0;
+                        // 元のページの回転 + 個別回転
+                        const totalRotation = (page.rotate + fileRotation) % 360;
+
+                        // スケール1でビューポートを取得してサイズを確認
+                        const viewport = page.getViewport({ scale: 1, rotation: totalRotation });
+
+                        if (!firstPageFound) {
+                            cellWidth = viewport.width;
+                            cellHeight = viewport.height;
+                            firstPageFound = true;
+                        }
+
+                        pagesToRender.push({
+                            page: page,
+                            viewport: viewport,
+                            totalRotation: totalRotation
+                        });
+                    }
+                } catch (e) {
+                    console.error("Preview load error for file " + fileObj.file.name, e);
+                }
+            }
+
+            if (pagesToRender.length === 0) return;
+
+            // キャンバスサイズの計算
+            const newPageWidth = (cellWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
+            const newPageHeight = (cellHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
+
+            canvas.width = newPageWidth;
+            canvas.height = newPageHeight;
+
+            // 背景白塗り
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 描画ループ
+            for (let i = 0; i < pagesToRender.length; i++) {
+                const item = pagesToRender[i];
                 const col = i % cols;
                 const row = Math.floor(i / cols);
-                const x = margin + col * (width + gutter);
-                const y = margin + row * (height + gutter);
+                const x = margin + col * (cellWidth + gutter);
+                const y = margin + row * (cellHeight + gutter);
 
-                // セルの枠線を描画
-                ctx.strokeRect(x, y, width, height);
+                // セル領域の描画 (デバッグ用枠線)
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y, cellWidth, cellHeight);
 
-                // アスペクト比を維持しながらセルに収まるようにスケール計算
-                let pageW = width;
-                let pageH = height;
+                // 描画用の一時キャンバスを作成
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
 
-                // 注: プレビューでは簡略化して枠のみを表示
-                // 実際のページ内容を回転付きで表示するにはPDFのレンダリングが必要で複雑になるため
-                // 代わりに回転角度のテキストを表示する
+                // 自動回転ロジック (簡易版: アスペクト比が基準と異なる場合に90度回転)
+                let renderRotation = item.totalRotation;
+                let renderViewport = item.viewport;
 
-                ctx.font = '24px sans-serif';
-                ctx.fillStyle = '#9ca3af';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+                if (autoRotateCheckbox.checked) {
+                    const isCellPortrait = cellHeight > cellWidth;
+                    const isPagePortrait = renderViewport.height > renderViewport.width;
 
-                let label = `Page ${i + 1}`;
-                if (manualRotation > 0) {
-                    label += ` (+${manualRotation}°)`;
+                    if (isCellPortrait !== isPagePortrait) {
+                        // 向きが合わない場合、90度回転させる
+                        renderRotation = (renderRotation + 90) % 360;
+                        renderViewport = item.page.getViewport({ scale: 1, rotation: renderRotation });
+                    }
                 }
-                ctx.fillText(label, x + width / 2, y + height / 2);
+
+                // 手動回転の適用 (表示上の回転)
+                if (manualRotation > 0) {
+                    renderRotation = (renderRotation + manualRotation) % 360;
+                    renderViewport = item.page.getViewport({ scale: 1, rotation: renderRotation });
+                }
+
+                // セルに収まるようにスケール計算
+                const scaleX = cellWidth / renderViewport.width;
+                const scaleY = cellHeight / renderViewport.height;
+                const scale = Math.min(scaleX, scaleY);
+
+                // 最終的な描画用ビューポート
+                const finalViewport = item.page.getViewport({ scale: scale, rotation: renderRotation });
+
+                tempCanvas.width = finalViewport.width;
+                tempCanvas.height = finalViewport.height;
+
+                const renderContext = {
+                    canvasContext: tempCtx,
+                    viewport: finalViewport
+                };
+
+                await item.page.render(renderContext).promise;
+
+                // メインキャンバスに転送 (中央寄せ)
+                const drawX = x + (cellWidth - finalViewport.width) / 2;
+                const drawY = y + (cellHeight - finalViewport.height) / 2;
+
+                ctx.drawImage(tempCanvas, drawX, drawY);
             }
         }
+
+
 
         function log(message) {
             const timestamp = new Date().toLocaleTimeString();
