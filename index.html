@@ -7,15 +7,15 @@
     <title>PDF面付け変換ツール (N-up)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
         rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -78,7 +78,7 @@
             font-family: 'Outfit', sans-serif;
         }
 
-        /* Glassmorphism Utilities */
+        /* グラスモーフィズム (すりガラス効果) ユーティリティ */
         .glass {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
@@ -105,7 +105,7 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
         }
 
-        /* Custom Scrollbar */
+        /* カスタムスクロールバー */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -147,7 +147,7 @@
             background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%230EA5E9FF' stroke-width='3' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
         }
 
-        /* Toggle Switch */
+        /* トグルスイッチ */
         .toggle-checkbox:checked {
             transform: translateX(100%);
             background-color: white;
@@ -157,7 +157,7 @@
             background: linear-gradient(to right, #10b981, #059669);
         }
 
-        /* Gradient Text */
+        /* グラデーションテキスト */
         .text-gradient {
             background-clip: text;
             -webkit-background-clip: text;
@@ -174,7 +174,7 @@
 <body
     class="bg-slate-50 dark:bg-dark-bg text-slate-800 dark:text-slate-200 font-sans antialiased transition-colors duration-300 min-h-screen selection:bg-primary-500 selection:text-white">
 
-    <!-- Background Decoration -->
+    <!-- 背景装飾 -->
     <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div
             class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/20 blur-[100px] dark:bg-blue-900/20">
@@ -285,6 +285,7 @@
                 <div id="file-info"
                     class="mt-4 text-center text-slate-600 dark:text-slate-400 font-medium h-6 transition-all duration-300">
                 </div>
+                <!-- ファイルリストの描画 -->
                 <ul id="file-list-container" class="mt-6 space-y-2 max-h-60 overflow-y-auto custom-scrollbar px-2"></ul>
             </section>
 
@@ -304,7 +305,8 @@
                             <div class="relative">
                                 <select id="layout"
                                     class="appearance-none w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all cursor-pointer hover:border-blue-400">
-                                    <option value="1x2">1x2 (2ページ/枚)</option>
+                                    <option value="1x2">1x2 (2ページ/枚 - 縦)</option>
+                                    <option value="2x1">2x1 (2ページ/枚 - 横)</option>
                                     <option value="2x2">2x2 (4ページ/枚)</option>
                                     <option value="2x3">2x3 (6ページ/枚)</option>
                                     <option value="3x3" selected>3x3 (9ページ/枚)</option>
@@ -531,10 +533,10 @@
         const errorBox = document.getElementById('error-box');
         const errorMessage = document.getElementById('error-message');
 
-        // Dark Mode Elements
+        // ダークモード関連要素
         const themeBtnLight = document.getElementById('theme-btn-light');
         const themeBtnDark = document.getElementById('theme-btn-dark');
-        const darkModeToggle = document.getElementById('dark-mode-toggle'); // Hidden checkbox for state
+        const darkModeToggle = document.getElementById('dark-mode-toggle'); // 状態管理用の非表示チェックボックス
 
         const autoRotateCheckbox = document.getElementById('auto-rotate');
         const enablePreviewCheckbox = document.getElementById('enable-preview');
@@ -560,7 +562,7 @@
                 selectFolderBtn.classList.add('opacity-50', 'cursor-not-allowed');
             }
 
-            // Theme Initialization
+            // テーマの初期化
             const savedTheme = localStorage.getItem('theme');
             const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
@@ -717,8 +719,13 @@
         }
 
         async function updateSelectedFiles(filesToProcess, dirHandle = null) {
-            selectedFiles = filesToProcess.map(f => ({ ...f, id: crypto.randomUUID() }));
+            selectedFiles = filesToProcess.map(f => ({ ...f, id: crypto.randomUUID(), rotation: 0 }));
             inputDirHandle = dirHandle;
+
+            await renderFileList();
+        }
+
+        async function renderFileList() {
             const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
 
             if (selectedFiles.length === 1) {
@@ -729,62 +736,58 @@
                 fileInfo.textContent = '';
             }
 
-            // Populate file list with orientation
             fileListContainer.innerHTML = '';
 
             if (selectedFiles.length > 0) {
-                // Show loading state if many files?
-                // For now, just process.
-
                 for (const fileObj of selectedFiles) {
                     const li = document.createElement('li');
-                    li.className = 'bg-white dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm animate-fade-in';
+                    li.className = 'bg-white dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm animate-fade-in group/item';
 
                     const leftDiv = document.createElement('div');
                     leftDiv.className = 'flex items-center gap-3 overflow-hidden';
 
-                    // Thumbnail Container
-                    const thumbDiv = document.createElement('div');
-                    thumbDiv.className = 'w-12 h-16 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200 dark:border-slate-500 relative';
+                    // アイコンプレースホルダー (サムネイル用)
+                    const iconDiv = document.createElement('div');
+                    iconDiv.className = 'w-16 h-16 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0 overflow-hidden relative border border-slate-200 dark:border-slate-500';
 
-                    // Canvas for thumbnail
+                    // キャンバスを作成してサムネイルを表示
                     const canvas = document.createElement('canvas');
                     canvas.className = 'w-full h-full object-contain';
-                    thumbDiv.appendChild(canvas);
+                    iconDiv.appendChild(canvas);
+
+                    // 非同期でサムネイル生成
+                    generateThumbnail(fileObj.file, canvas, fileObj.rotation || 0).catch(err => {
+                        console.error('Thumbnail generation failed:', err);
+                        iconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>';
+                    });
 
                     const textDiv = document.createElement('div');
                     textDiv.className = 'truncate';
                     textDiv.innerHTML = `<div class="font-medium text-slate-700 dark:text-slate-200 truncate" title="${fileObj.relativePath}">${fileObj.relativePath}</div><div class="text-xs text-slate-500 dark:text-slate-400">${formatBytes(fileObj.file.size)}</div>`;
 
-                    leftDiv.appendChild(thumbDiv);
+                    leftDiv.appendChild(iconDiv);
                     leftDiv.appendChild(textDiv);
 
                     const rightDiv = document.createElement('div');
-                    rightDiv.className = 'flex-shrink-0 ml-4';
+                    rightDiv.className = 'flex-shrink-0 ml-4 flex items-center gap-3';
 
-                    // Render Thumbnail & Check Orientation
-                    (async () => {
-                        try {
-                            const arrayBuffer = await fileObj.file.arrayBuffer();
+                    // 向きの確認
+                    try {
+                        const arrayBuffer = await fileObj.file.arrayBuffer();
+                        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+                        if (pdfDoc.getPageCount() > 0) {
+                            const firstPage = pdfDoc.getPage(0);
+                            const visualSize = getVisualSize(firstPage);
 
-                            // 1. Render Thumbnail with pdf.js
-                            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                            const pdfDoc = await loadingTask.promise;
-                            const page = await pdfDoc.getPage(1);
+                            // 手動回転を適用して表示サイズを計算
+                            const totalRotation = (fileObj.rotation || 0);
+                            const isRotated90or270 = totalRotation % 180 === 90;
 
-                            const viewport = page.getViewport({ scale: 0.5 }); // Scale down for thumbnail
-                            canvas.height = viewport.height;
-                            canvas.width = viewport.width;
+                            // 90度または270度回転している場合は幅と高さを入れ替え
+                            const effectiveWidth = isRotated90or270 ? visualSize.height : visualSize.width;
+                            const effectiveHeight = isRotated90or270 ? visualSize.width : visualSize.height;
 
-                            const renderContext = {
-                                canvasContext: canvas.getContext('2d'),
-                                viewport: viewport
-                            };
-                            await page.render(renderContext).promise;
-
-                            // 2. Check Orientation (using pdf.js viewport, which handles rotation)
-                            // viewport.width/height are the visual dimensions.
-                            const isPortrait = viewport.height > viewport.width;
+                            const isPortrait = effectiveHeight > effectiveWidth;
 
                             const badgeClass = isPortrait
                                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
@@ -793,13 +796,36 @@
                                 ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>'
                                 : '<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2z" /></svg>';
 
-                            rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}">${icon}${isPortrait ? '縦向き' : '横向き'}</span>`;
-                        } catch (e) {
-                            console.error(e);
-                            rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">読込エラー</span>`;
-                            thumbDiv.innerHTML = '<span class="text-xs text-slate-400">Error</span>';
+                            // 回転ボタン
+                            const rotateBtn = document.createElement('button');
+                            rotateBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors';
+                            rotateBtn.title = '90度回転';
+                            rotateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>`;
+                            rotateBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                fileObj.rotation = ((fileObj.rotation || 0) + 90) % 360;
+                                renderFileList(); // バッジを更新するために再描画
+                            };
+
+                            // 回転バッジ (回転されている場合)
+                            let rotationBadge = '';
+                            if (fileObj.rotation > 0) {
+                                rotationBadge = `<span class="text-xs font-bold text-blue-600 dark:text-blue-400 mr-2">+${fileObj.rotation}°</span>`;
+                            }
+
+                            const badgeDiv = document.createElement('div');
+                            badgeDiv.className = 'flex items-center';
+                            badgeDiv.innerHTML = `${rotationBadge}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}">${icon}${isPortrait ? '縦向き' : '横向き'}</span>`;
+
+                            rightDiv.appendChild(badgeDiv);
+                            rightDiv.appendChild(rotateBtn);
+                        } else {
+                            rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">ページなし</span>`;
                         }
-                    })();
+                    } catch (e) {
+                        console.error(e);
+                        rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">読込エラー</span>`;
+                    }
 
                     li.appendChild(leftDiv);
                     li.appendChild(rightDiv);
@@ -827,17 +853,25 @@
             const [cols, rows] = document.getElementById('layout').value.split('x').map(Number);
             const margin = parseFloat(document.getElementById('margin').value) * MM_TO_PT;
             const gutter = parseFloat(document.getElementById('gutter').value) * MM_TO_PT;
-            const firstFile = selectedFiles[0].file;
+            const firstFileObj = selectedFiles[0];
+            const firstFile = firstFileObj.file;
 
             const fileBuffer = await firstFile.arrayBuffer();
             const pdfDoc = await PDFDocument.load(fileBuffer);
             const firstPage = pdfDoc.getPage(0);
-            let { width, height } = firstPage.getSize();
+
+            // プレビュー用にファイルの回転を適用
+            const fileRotation = firstFileObj.rotation || 0;
+            if (fileRotation > 0) {
+                firstPage.setRotation(degrees(firstPage.getRotation().angle + fileRotation));
+            }
+
+            let { width, height } = getVisualSize(firstPage);
 
             if (autoRotateCheckbox.checked) {
-                const visualSize = getVisualSize(firstPage);
-                width = visualSize.width;
-                height = visualSize.height;
+                // 自動回転がオンの場合、最初のページを基準にすると仮定
+                // 既に回転させているので、現在の表示サイズを使用する
+                // (getVisualSizeが処理するので追加ロジックは不要)
             }
 
             const newPageWidth = (width * cols) + (gutter * (cols - 1)) + (margin * 2);
@@ -855,21 +889,23 @@
             const manualRotation = parseInt(document.getElementById('manual-rotate').value, 10);
 
             for (let i = 0; i < Math.min(cols * rows, pdfDoc.getPageCount()); i++) {
+                // ファイルが多い場合のローディング表示が必要であればここに追加
+                // 現状はそのまま処理
                 const col = i % cols;
                 const row = Math.floor(i / cols);
                 const x = margin + col * (width + gutter);
                 const y = margin + row * (height + gutter);
 
-                // Draw cell border
+                // セルの枠線を描画
                 ctx.strokeRect(x, y, width, height);
 
-                // Calculate scaled dimensions to fit in the cell while preserving aspect ratio
+                // アスペクト比を維持しながらセルに収まるようにスケール計算
                 let pageW = width;
                 let pageH = height;
 
-                // Note: For preview, we simplify and just show the box. 
-                // To show actual page content with rotation would require rendering PDF to canvas which is complex here.
-                // Instead, we'll just indicate the rotation text.
+                // 注: プレビューでは簡略化して枠のみを表示
+                // 実際のページ内容を回転付きで表示するにはPDFのレンダリングが必要で複雑になるため
+                // 代わりに回転角度のテキストを表示する
 
                 ctx.font = '24px sans-serif';
                 ctx.fillStyle = '#9ca3af';
@@ -893,7 +929,7 @@
         function updateProgress(percentage) {
             const p = Math.round(percentage);
             progressBar.style.width = `${p}%`;
-            // progressBar.textContent = `${p}%`; // Removed text from bar for cleaner look
+            // プログレスバーのテキストを削除して見た目をすっきりさせる
         }
 
         function showProgress() {
@@ -916,7 +952,8 @@
             errorBox.classList.add('hidden');
         }
 
-        async function createNupPdfBytes(file) {
+        async function createNupPdfBytes(fileObject) {
+            const { file, rotation: fileRotation } = fileObject;
             const layoutValue = document.getElementById('layout').value;
             const [cols, rows] = layoutValue.split('x').map(Number);
             const margin = parseFloat(document.getElementById('margin').value) * MM_TO_PT;
@@ -928,6 +965,15 @@
             if (srcPdf.isEncrypted) throw new Error('暗号化されたPDFはサポートされていません。');
 
             const pages = srcPdf.getPages();
+
+            // 1. 個別ファイル回転の適用
+            if (fileRotation && fileRotation > 0) {
+                for (const page of pages) {
+                    page.setRotation(degrees(page.getRotation().angle + fileRotation));
+                }
+            }
+
+            // 2. 自動回転の適用 (向きの統一)
             if (autoRotateCheckbox.checked && pages.length > 0) {
                 const firstPageSize = getVisualSize(pages[0]);
                 const isFirstPagePortrait = firstPageSize.height > firstPageSize.width;
@@ -943,7 +989,7 @@
 
             const manualRotation = parseInt(document.getElementById('manual-rotate').value, 10);
 
-            // Apply manual rotation if set
+            // 手動回転が設定されている場合は適用
             if (manualRotation > 0) {
                 for (const page of pages) {
                     page.setRotation(degrees(page.getRotation().angle + manualRotation));
@@ -956,8 +1002,8 @@
             const newPdf = await PDFDocument.create();
             const embeddedPages = await newPdf.embedPages(srcPdf.getPages());
 
-            // Use the first page's visual dimensions for the grid cell size
-            // (After auto-rotate and manual-rotate have been applied to the source pages)
+            // 最初のページの表示サイズをグリッドセルのサイズとして使用
+            // (自動回転と手動回転が適用された後のサイズ)
             const firstPageVisualSize = getVisualSize(pages[0]);
             const cellWidth = firstPageVisualSize.width;
             const cellHeight = firstPageVisualSize.height;
@@ -972,18 +1018,18 @@
                 const col = pageIndexInSheet % cols;
                 const row = Math.floor(pageIndexInSheet / cols);
 
-                // Cell position (top-left of the cell)
+                // セルの位置 (セルの左上)
                 const cellX = margin + col * (cellWidth + gutter);
                 const cellY = newPageHeight - margin - (row + 1) * cellHeight - row * gutter;
 
-                // Embed page dimensions
+                // ページの埋め込み
                 const embeddedPage = embeddedPages[i];
                 const originalPage = pages[i];
                 const rotation = originalPage.getRotation().angle;
                 const isRotated = rotation % 180 === 90;
 
-                // Calculate scale based on visual dimensions
-                // If rotated, visual width is height, visual height is width
+                // 表示サイズに基づいてスケールを計算
+                // 回転している場合、表示幅は高さ、表示高さは幅になる
                 const visualPageWidth = isRotated ? embeddedPage.height : embeddedPage.width;
                 const visualPageHeight = isRotated ? embeddedPage.width : embeddedPage.height;
 
@@ -992,42 +1038,42 @@
                 const drawnWidth = embeddedPage.width * scale;
                 const drawnHeight = embeddedPage.height * scale;
 
-                // Visual dimensions of the drawn page
+                // 描画されるページの表示サイズ
                 const drawnVisualWidth = isRotated ? drawnHeight : drawnWidth;
                 const drawnVisualHeight = isRotated ? drawnWidth : drawnHeight;
 
-                // Center the page in the cell
+                // ページをセルの中央に配置
                 const x = cellX + (cellWidth - drawnVisualWidth) / 2;
                 const y = cellY + (cellHeight - drawnVisualHeight) / 2;
 
-                // Adjust x/y for rotation if necessary?
-                // pdf-lib drawPage draws relative to the bottom-left of the transformed page?
-                // Actually, if we just pass x,y,width,height, pdf-lib handles the rotation within that box?
-                // No, pdf-lib rotates around the origin (x,y).
-                // If we draw at x,y with rotation 90, the page will extend from x,y upwards (or leftwards/rightwards depending on coord system).
-                // This is getting complicated. 
-                // However, `embedPages` usually normalizes rotation? 
-                // No, `embedPages` keeps the rotation.
-                // If we use `drawPage` on a rotated page, we might need to adjust the anchor point.
-                // BUT, for N-up, usually we want to draw it "upright" relative to the cell?
-                // If the user manually rotated it, they want it rotated.
-                // If the page was ALREADY rotated (e.g. Landscape), we want to draw it as Landscape.
+                // 必要に応じて回転のためにx/yを調整
+                // pdf-libのdrawPageは変換されたページの左下を基準にする？
+                // 実際には、x,y,width,heightを渡すと、pdf-libはそのボックス内で回転を処理する？
+                // いや、pdf-libは原点(x,y)を中心に回転する。
+                // x,yで回転90度で描画すると、ページはx,yから上方向に（または座標系によっては左/右に）伸びる。
+                // これは複雑になる。
+                // しかし、`embedPages`は通常、回転を正規化する？
+                // いや、`embedPages`は回転を保持する。
+                // 回転したページに`drawPage`を使用する場合、アンカーポイントを調整する必要があるかもしれない。
+                // しかし、N-upの場合、通常はセルに対して「直立」して描画したい？
+                // ユーザーが手動で回転させた場合は、回転させたい。
+                // ページが既に回転していた場合（例：横向き）、横向きとして描画したい。
 
-                // Let's assume pdf-lib's drawPage handles the content rotation.
-                // If we calculate x,y as the bottom-left of the VISUAL box, we need to know where drawPage expects x,y.
-                // If rotation is 90:
-                // Visual Box: (x,y) to (x+H, y+W).
-                // drawPage(x, y) with rot 90 draws from (x,y) to (x+W, y) [rotated]?
-                // If rot 90, (x,y) is the bottom-right of the visual box?
-                // Rot 0: x,y is bottom-left.
-                // Rot 90: x,y is bottom-right? (x+W, y)?
-                // Rot 180: x,y is top-right?
-                // Rot 270: x,y is top-left?
+                // pdf-libのdrawPageがコンテンツの回転を処理すると仮定する。
+                // x,yを表示ボックスの左下として計算する場合、drawPageがx,yをどこに期待しているかを知る必要がある。
+                // 回転が90度の場合：
+                // 表示ボックス: (x,y) から (x+H, y+W)
+                // 回転90度でdrawPage(x, y)を実行すると、(x,y)から(x+W, y)に描画される[回転後]？
+                // 回転90度の場合、(x,y)は表示ボックスの右下？
+                // 回転0度: x,yは左下。
+                // 回転90度: x,yは右下？ (x+W, y)？
+                // 回転180度: x,yは右上？
+                // 回転270度: x,yは左上？
 
-                // To be safe, we can use the `rotate` option in `drawPage` to override? 
-                // No, we want to respect the embedded page's rotation.
+                // 安全のため、`drawPage`の`rotate`オプションを使用して上書きすることもできる？
+                // いや、埋め込まれたページの回転を尊重したい。
 
-                // Let's try to adjust x,y based on rotation to align the visual box.
+                // 回転に基づいてx,yを調整し、表示ボックスを合わせる。
                 let drawX = x;
                 let drawY = y;
 
@@ -1066,7 +1112,7 @@
                 updateProgress(0);
 
                 try {
-                    const newPdfBytes = await createNupPdfBytes(fileObject.file);
+                    const newPdfBytes = await createNupPdfBytes(fileObject);
                     totalOutputSize += newPdfBytes.length;
 
                     if (outputDirHandle) {
@@ -1149,6 +1195,29 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             }, 100);
+        }
+
+        async function generateThumbnail(file, canvas, rotation) {
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(1);
+
+            // 目的のサイズ（ここでは幅128px程度）に合わせてスケールを計算
+            // 高解像度ディスプレイ向けに少し大きめにレンダリングしてCSSで縮小表示
+            const desiredWidth = 128;
+            const viewport = page.getViewport({ scale: 1, rotation: rotation });
+            const scale = desiredWidth / viewport.width;
+            const scaledViewport = page.getViewport({ scale: scale, rotation: rotation });
+
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+
+            const renderContext = {
+                canvasContext: canvas.getContext('2d'),
+                viewport: scaledViewport
+            };
+            await page.render(renderContext).promise;
         }
 
         function renderFailedFiles() {
