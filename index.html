@@ -1093,9 +1093,18 @@
             const gutter = parseFloat(document.getElementById('gutter').value) * MM_TO_PT;
 
             const fileBuffer = await file.arrayBuffer();
-            const srcPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: false });
 
-            if (srcPdf.isEncrypted) throw new Error('暗号化されたPDFはサポートされていません。');
+            // ignoreEncryption: true で、オーナーパスワードのみのPDFも処理可能に
+            // (ユーザーパスワードが必要なPDFはエラーになる)
+            let srcPdf;
+            try {
+                srcPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: true });
+            } catch (loadError) {
+                if (loadError.message.includes('encrypted') || loadError.message.includes('password')) {
+                    throw new Error('このPDFはパスワードで保護されており、処理できません。');
+                }
+                throw loadError;
+            }
 
             const pages = srcPdf.getPages();
 
