@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF結合ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '"Outfit"', 'sans-serif'],
+                        heading: ['"Outfit"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            surface: '#1e293b',
+                            border: '#334155'
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #10b981, #059669);
+        }
+
+        .dark .text-gradient {
+            background-image: linear-gradient(to right, #34d399, #10b981);
+        }
+
+        .file-drop-area {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23CBD5E1FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+
+        .dark .file-drop-area {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23475569FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+
+        .file-drop-area.dragging {
+            background-color: rgba(16, 185, 129, 0.1);
+            transform: scale(1.01);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%2310B981FF' stroke-width='3' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        /* ドラッグ中のスタイル */
+        .sortable-ghost {
+            opacity: 0.4;
+        }
+
+        .sortable-drag {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-50 dark:bg-dark-bg text-slate-800 dark:text-slate-200 font-sans antialiased transition-colors duration-300 min-h-screen selection:bg-emerald-500 selection:text-white">
+
+    <!-- 背景装飾 -->
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div
+            class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-emerald-400/20 blur-[100px] dark:bg-emerald-900/20">
+        </div>
+        <div
+            class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-teal-400/20 blur-[100px] dark:bg-teal-900/20">
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <!-- ヘッダー -->
+        <header class="flex flex-col gap-4 mb-10 py-4 animate-fade-in">
+            <!-- ナビゲーション -->
+            <nav class="flex justify-center gap-2">
+                <a href="index.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
+                    面付け
+                </a>
+                <a href="merge.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20">
+                    結合
+                </a>
+            </nav>
+            <!-- タイトルとダークモード -->
+            <div class="flex justify-between items-center">
+                <div class="text-left">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                PDF<span class="text-gradient">結合</span>ツール</h1>
+                            <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">PDF Merge Tool
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <!-- ダークモードトグル -->
+                <div
+                    class="flex items-center gap-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <button id="theme-toggle-btn"
+                        class="p-3 rounded-full text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-slate-700 transition-all"
+                        aria-label="テーマ切り替え">
+                        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden"
+                            viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="glass-card rounded-3xl p-6 md:p-10 space-y-12 animate-slide-up">
+
+            <!-- 1. ファイルを追加 -->
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-emerald-500/20">1</span>
+                    PDFファイルを追加
+                </h2>
+                <div id="drop-area"
+                    class="file-drop-area border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-10 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 group relative overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    </div>
+                    <div class="relative z-10 flex flex-col items-center justify-center">
+                        <div
+                            class="w-20 h-20 mb-6 rounded-full bg-emerald-50 dark:bg-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-10 h-10 text-emerald-500 dark:text-emerald-400"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                        </div>
+                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2">
+                            PDFファイルをここにドラッグ＆ドロップ</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">または、ボタンから選択してください</p>
+
+                        <button id="select-file-btn"
+                            class="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transform hover:-translate-y-0.5 transition-all duration-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            ファイルを追加
+                        </button>
+                        <input type="file" id="file-input" class="hidden" accept=".pdf" multiple>
+                    </div>
+                </div>
+
+                <div id="file-info"
+                    class="mt-4 text-center text-slate-600 dark:text-slate-400 font-medium h-6 transition-all duration-300">
+                </div>
+
+                <!-- ファイルリスト -->
+                <div id="file-list-header" class="mt-6 hidden flex justify-between items-center px-2 mb-2">
+                    <span class="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                        ドラッグで並び替え
+                    </span>
+                    <button id="clear-all-btn"
+                        class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium flex items-center gap-1 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        すべてクリア
+                    </button>
+                </div>
+                <ul id="file-list-container" class="mt-2 space-y-2 max-h-80 overflow-y-auto px-2"></ul>
+            </section>
+
+            <!-- 2. 設定 -->
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-emerald-500/20">2</span>
+                    設定
+                </h2>
+                <div
+                    class="bg-slate-50/80 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-6">
+                    <div class="group">
+                        <label for="output-filename"
+                            class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">出力ファイル名</label>
+                        <input type="text" id="output-filename" value="merged" placeholder="出力ファイル名"
+                            class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all hover:border-emerald-400">
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">※ .pdf は自動的に付加されます</p>
+                    </div>
+
+                    <label
+                        class="flex items-center p-4 bg-white dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 transition-all group">
+                        <div class="relative flex items-center">
+                            <input id="add-outlines" name="add-outlines" type="checkbox" checked class="peer sr-only">
+                            <div
+                                class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600">
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <span
+                                class="block text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">アウトライン（しおり）を自動追加</span>
+                            <span
+                                class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">各ファイルの先頭ページにブックマークを作成します。PDFビューアのサイドバーから素早くジャンプできます。</span>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <!-- 3. 実行 -->
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-emerald-500/20">3</span>
+                    実行
+                </h2>
+                <button id="merge-btn" disabled
+                    class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 relative z-10" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <span class="relative z-10 text-lg">PDFを結合</span>
+                </button>
+            </section>
+
+            <!-- 4. 進捗 -->
+            <section id="progress-section" class="hidden animate-fade-in">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-emerald-500/20">4</span>
+                    進捗状況
+                </h2>
+                <div id="progress-details"
+                    class="text-sm text-center text-slate-600 dark:text-slate-400 mb-4 font-medium"></div>
+                <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 overflow-hidden">
+                    <div id="progress-bar"
+                        class="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-300"
+                        style="width: 0%">
+                    </div>
+                </div>
+            </section>
+
+            <!-- エラー表示 -->
+            <div id="error-box"
+                class="hidden mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl flex items-start gap-3 animate-fade-in">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p id="error-message" class="font-medium"></p>
+            </div>
+        </main>
+
+        <footer class="text-center mt-12 text-sm text-slate-500 dark:text-slate-400 font-medium">
+            <p>&copy; 2024 PDF Tools. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        const { PDFDocument } = PDFLib;
+
+        // DOM要素
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const selectFileBtn = document.getElementById('select-file-btn');
+        const fileInfo = document.getElementById('file-info');
+        const fileListHeader = document.getElementById('file-list-header');
+        const fileListContainer = document.getElementById('file-list-container');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        const mergeBtn = document.getElementById('merge-btn');
+        const progressSection = document.getElementById('progress-section');
+        const progressBar = document.getElementById('progress-bar');
+        const progressDetails = document.getElementById('progress-details');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const themeIconSun = document.getElementById('theme-icon-sun');
+        const themeIconMoon = document.getElementById('theme-icon-moon');
+        const outputFilenameInput = document.getElementById('output-filename');
+        const addOutlinesCheckbox = document.getElementById('add-outlines');
+
+        let selectedFiles = [];
+        let draggedItem = null;
+
+        // --- 初期化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
+                setTheme('dark');
+            } else {
+                setTheme('light');
+            }
+        });
+
+        // --- テーマ ---
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                themeIconSun.classList.remove('hidden');
+                themeIconMoon.classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                themeIconSun.classList.add('hidden');
+                themeIconMoon.classList.remove('hidden');
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+
+        // --- イベントリスナー ---
+        selectFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelection(e.target.files);
+            fileInput.value = '';
+        });
+        clearAllBtn.addEventListener('click', clearAllFiles);
+        mergeBtn.addEventListener('click', mergePdfs);
+
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.add('dragging');
+        });
+        dropArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.remove('dragging');
+        });
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.remove('dragging');
+            handleFileSelection(e.dataTransfer.files);
+        });
+
+        // --- ファイル操作 ---
+        function handleFileSelection(fileList) {
+            const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
+            if (pdfFiles.length === 0) {
+                if (selectedFiles.length === 0) showError('PDFファイルが見つかりませんでした。');
+                return;
+            }
+            const newFiles = pdfFiles.map(f => ({
+                file: f,
+                name: f.name,
+                id: crypto.randomUUID()
+            }));
+            selectedFiles = [...selectedFiles, ...newFiles];
+            renderFileList();
+        }
+
+        function removeFile(id) {
+            selectedFiles = selectedFiles.filter(f => f.id !== id);
+            renderFileList();
+        }
+
+        function clearAllFiles() {
+            selectedFiles = [];
+            renderFileList();
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function generateOutputFilename() {
+            if (selectedFiles.length === 0) {
+                return 'merged';
+            }
+
+            // ファイル名から.pdfを除去
+            const getBaseName = (name) => name.replace(/\.pdf$/i, '');
+
+            if (selectedFiles.length === 1) {
+                return getBaseName(selectedFiles[0].name) + '_merged';
+            }
+
+            // 最初と最後のファイル名を使用
+            const firstName = getBaseName(selectedFiles[0].name);
+            const lastName = getBaseName(selectedFiles[selectedFiles.length - 1].name);
+
+            // 同じ名前の場合は1つだけ
+            if (firstName === lastName) {
+                return firstName + '_merged';
+            }
+
+            return firstName + '-' + lastName + '_merged';
+        }
+
+        function updateOutputFilename() {
+            outputFilenameInput.value = generateOutputFilename();
+        }
+
+        async function renderFileList() {
+            const totalSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
+
+            if (selectedFiles.length === 0) {
+                fileInfo.textContent = '';
+                fileListHeader.classList.add('hidden');
+            } else if (selectedFiles.length === 1) {
+                fileInfo.textContent = `選択中: ${selectedFiles[0].name} (${formatBytes(totalSize)})`;
+                fileListHeader.classList.remove('hidden');
+                fileListHeader.classList.add('flex');
+            } else {
+                fileInfo.textContent = `${selectedFiles.length}個のファイルを選択中 (合計 ${formatBytes(totalSize)})`;
+                fileListHeader.classList.remove('hidden');
+                fileListHeader.classList.add('flex');
+            }
+
+            // 出力ファイル名を自動更新
+            updateOutputFilename();
+
+            fileListContainer.innerHTML = '';
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const fileObj = selectedFiles[i];
+                const li = document.createElement('li');
+                li.className = 'bg-white dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm animate-fade-in cursor-move';
+                li.draggable = true;
+                li.dataset.id = fileObj.id;
+
+                // ドラッグイベント
+                li.addEventListener('dragstart', handleDragStart);
+                li.addEventListener('dragover', handleDragOver);
+                li.addEventListener('drop', handleDrop);
+                li.addEventListener('dragend', handleDragEnd);
+
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'flex items-center gap-3 overflow-hidden';
+
+                // 順番表示
+                const orderBadge = document.createElement('span');
+                orderBadge.className = 'flex-shrink-0 w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-center';
+                orderBadge.textContent = i + 1;
+
+                // サムネイル
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = 'w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0 overflow-hidden';
+                const canvas = document.createElement('canvas');
+                canvas.className = 'w-full h-full object-contain';
+                thumbDiv.appendChild(canvas);
+                generateThumbnail(fileObj.file, canvas, fileObj.rotation || 0);
+
+                // ファイル名
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'truncate';
+                nameDiv.innerHTML = `<div class="font-medium text-slate-700 dark:text-slate-200 truncate">${fileObj.name}</div><div class="text-xs text-slate-500 dark:text-slate-400">${formatBytes(fileObj.file.size)}</div>`;
+
+                leftDiv.appendChild(orderBadge);
+                leftDiv.appendChild(thumbDiv);
+                leftDiv.appendChild(nameDiv);
+
+                // 右側のボタン群
+                const rightDiv = document.createElement('div');
+                rightDiv.className = 'flex items-center gap-2 flex-shrink-0';
+
+                // 回転バッジ
+                if (fileObj.rotation && fileObj.rotation > 0) {
+                    const rotationBadge = document.createElement('span');
+                    rotationBadge.className = 'text-xs font-bold text-emerald-600 dark:text-emerald-400';
+                    rotationBadge.textContent = `+${fileObj.rotation}°`;
+                    rightDiv.appendChild(rotationBadge);
+                }
+
+                // 回転ボタン
+                const rotateBtn = document.createElement('button');
+                rotateBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-slate-600 transition-colors';
+                rotateBtn.title = '90度回転';
+                rotateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>`;
+                rotateBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    fileObj.rotation = ((fileObj.rotation || 0) + 90) % 360;
+                    renderFileList();
+                };
+                rightDiv.appendChild(rotateBtn);
+
+                // 削除ボタン
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-600 transition-colors';
+                removeBtn.title = '削除';
+                removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    removeFile(fileObj.id);
+                };
+                rightDiv.appendChild(removeBtn);
+
+                li.appendChild(leftDiv);
+                li.appendChild(rightDiv);
+                fileListContainer.appendChild(li);
+            }
+
+            mergeBtn.disabled = selectedFiles.length < 2;
+            hideError();
+        }
+
+        // --- ドラッグ&ドロップ並び替え ---
+        function handleDragStart(e) {
+            draggedItem = e.target;
+            e.target.classList.add('opacity-50');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const target = e.target.closest('li');
+            if (target && target !== draggedItem) {
+                const rect = target.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    target.parentNode.insertBefore(draggedItem, target);
+                } else {
+                    target.parentNode.insertBefore(draggedItem, target.nextSibling);
+                }
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            updateOrderFromDOM();
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('opacity-50');
+            draggedItem = null;
+            updateOrderFromDOM();
+        }
+
+        function updateOrderFromDOM() {
+            const items = fileListContainer.querySelectorAll('li');
+            const newOrder = [];
+            items.forEach(item => {
+                const id = item.dataset.id;
+                const file = selectedFiles.find(f => f.id === id);
+                if (file) newOrder.push(file);
+            });
+            selectedFiles = newOrder;
+            renderFileList();
+        }
+
+        // --- サムネイル生成 ---
+        async function generateThumbnail(file, canvas, rotation = 0) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: 0.2, rotation: rotation });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({
+                    canvasContext: canvas.getContext('2d'),
+                    viewport: viewport
+                }).promise;
+            } catch (err) {
+                console.error('Thumbnail error:', err);
+            }
+        }
+
+        // --- PDF結合 ---
+        async function mergePdfs() {
+            if (selectedFiles.length < 2) return;
+
+            progressSection.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            progressDetails.textContent = '結合を開始しています...';
+            mergeBtn.disabled = true;
+            hideError();
+
+            try {
+                const mergedPdf = await PDFDocument.create();
+                const total = selectedFiles.length;
+                const outlineData = []; // ブックマーク情報を収集
+
+                for (let i = 0; i < total; i++) {
+                    const fileObj = selectedFiles[i];
+                    progressDetails.textContent = `処理中: ${i + 1} / ${total} - ${fileObj.name}`;
+
+                    const arrayBuffer = await fileObj.file.arrayBuffer();
+                    let srcPdf;
+                    try {
+                        srcPdf = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+                    } catch (loadError) {
+                        throw new Error(`"${fileObj.name}" の読み込みに失敗しました。`);
+                    }
+
+                    // 現在のページ数を記録（このファイルの開始ページ）
+                    const startPageIndex = mergedPdf.getPageCount();
+
+                    // ファイル名からブックマークタイトルを作成（.pdf を除去）
+                    const bookmarkTitle = fileObj.name.replace(/\.pdf$/i, '');
+                    outlineData.push({ title: bookmarkTitle, pageIndex: startPageIndex });
+
+                    // 回転が設定されている場合、ページに回転を適用
+                    const fileRotation = fileObj.rotation || 0;
+                    if (fileRotation > 0) {
+                        const pages = srcPdf.getPages();
+                        for (const page of pages) {
+                            page.setRotation(PDFLib.degrees(page.getRotation().angle + fileRotation));
+                        }
+                    }
+
+                    const pages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
+                    pages.forEach(page => mergedPdf.addPage(page));
+
+                    progressBar.style.width = `${((i + 1) / total) * 100}%`;
+                }
+
+                // アウトライン（しおり）を追加
+                if (addOutlinesCheckbox.checked && outlineData.length > 0) {
+                    progressDetails.textContent = 'アウトラインを追加中...';
+                    await addOutlinesToPdf(mergedPdf, outlineData);
+                }
+
+                progressDetails.textContent = 'PDFを生成中...';
+                const mergedPdfBytes = await mergedPdf.save();
+
+                // ダウンロード
+                const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const filename = outputFilenameInput.value.trim() || 'merged';
+                a.download = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                progressDetails.textContent = `完了！ ${mergedPdf.getPageCount()}ページのPDFを生成しました。`;
+
+            } catch (error) {
+                showError(error.message);
+            }
+
+            mergeBtn.disabled = false;
+        }
+
+        // --- エラー表示 ---
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorBox.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorBox.classList.add('hidden');
+        }
+
+        // --- アウトライン追加 ---
+        async function addOutlinesToPdf(pdfDoc, outlineData) {
+            // pdf-lib の低レベルAPIを使用してアウトラインを作成
+            const context = pdfDoc.context;
+
+            // 各ブックマーク項目の参照を作成
+            const outlineItems = [];
+
+            for (let i = 0; i < outlineData.length; i++) {
+                const { title, pageIndex } = outlineData[i];
+                const page = pdfDoc.getPage(pageIndex);
+                const pageRef = page.ref;
+
+                // 目的地配列を作成 [pageRef, /XYZ, left, top, zoom]
+                const destArray = context.obj([pageRef, 'XYZ', null, null, null]);
+
+                // アウトライン項目辞書を作成
+                const outlineItemDict = context.obj({
+                    Title: PDFLib.PDFHexString.fromText(title),
+                    Parent: null, // 後で設定
+                    Dest: destArray,
+                });
+
+                const outlineItemRef = context.register(outlineItemDict);
+                outlineItems.push({ dict: outlineItemDict, ref: outlineItemRef });
+            }
+
+            // アウトライン項目をリンク（Prev/Next）
+            for (let i = 0; i < outlineItems.length; i++) {
+                if (i > 0) {
+                    outlineItems[i].dict.set(PDFLib.PDFName.of('Prev'), outlineItems[i - 1].ref);
+                }
+                if (i < outlineItems.length - 1) {
+                    outlineItems[i].dict.set(PDFLib.PDFName.of('Next'), outlineItems[i + 1].ref);
+                }
+            }
+
+            // アウトラインルート辞書を作成
+            const outlinesDict = context.obj({
+                Type: 'Outlines',
+                First: outlineItems[0].ref,
+                Last: outlineItems[outlineItems.length - 1].ref,
+                Count: outlineItems.length,
+            });
+
+            const outlinesRef = context.register(outlinesDict);
+
+            // 各アウトライン項目の親を設定
+            for (const item of outlineItems) {
+                item.dict.set(PDFLib.PDFName.of('Parent'), outlinesRef);
+            }
+
+            // カタログにアウトラインを追加
+            pdfDoc.catalog.set(PDFLib.PDFName.of('Outlines'), outlinesRef);
+        }
+    </script>
+</body>
+
+</html>
