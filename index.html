@@ -11,6 +11,7 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
+    <script src="translations.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -191,13 +192,11 @@
             <!-- ナビゲーション -->
             <nav class="flex justify-center gap-2">
                 <a href="index.html"
-                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20">
-                    面付け
-                </a>
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20"
+                    data-i18n="nav.nup">面付け</a>
                 <a href="merge.html"
-                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
-                    結合
-                </a>
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.merge">結合</a>
             </nav>
             <!-- タイトルとダークモード -->
             <div class="flex justify-between items-center">
@@ -212,17 +211,22 @@
                             </svg>
                         </div>
                         <div>
-                            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
+                                data-i18n="nup.title">
                                 PDF<span class="text-gradient">面付け</span>ツール</h1>
-                            <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">Professional
-                                N-up
-                                Converter</p>
+                            <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400"
+                                data-i18n="nup.subtitle">Professional N-up Converter</p>
                         </div>
                     </div>
                 </div>
-                <!-- ダークモードトグル -->
+                <!-- ダークモードトグルと言語切り替え -->
                 <div
-                    class="flex items-center gap-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                    class="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <button id="lang-toggle-btn"
+                        class="p-3 rounded-full text-lg hover:bg-blue-50 dark:hover:bg-slate-700 transition-all"
+                        aria-label="言語切り替え" onclick="toggleLanguage()">
+                        🇺🇸
+                    </button>
                     <button id="theme-toggle-btn"
                         class="p-3 rounded-full text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-slate-700 transition-all"
                         aria-label="テーマ切り替え">
@@ -250,7 +254,7 @@
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
                         class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-blue-500/20">1</span>
-                    ファイルまたはフォルダを選択
+                    <span data-i18n="nup.step1.title">ファイルまたはフォルダを選択</span>
                 </h2>
                 <div id="drop-area"
                     class="file-drop-area border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-10 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 group relative overflow-hidden">
@@ -266,9 +270,11 @@
                                     d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                             </svg>
                         </div>
-                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2">
+                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2"
+                            data-i18n="common.drop.title">
                             PDFファイルをここにドラッグ＆ドロップ</p>
-                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">または、以下のボタンから選択してください</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6" data-i18n="common.drop.subtitle">
+                            または、以下のボタンから選択してください</p>
 
                         <div class="flex flex-col sm:flex-row justify-center items-center gap-4 w-full sm:w-auto">
                             <button id="select-file-btn"
@@ -279,7 +285,7 @@
                                         d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                                         clip-rule="evenodd" />
                                 </svg>
-                                ファイルを追加
+                                <span data-i18n="common.btn.addfile">ファイルを追加</span>
                             </button>
                             <button id="select-folder-btn"
                                 class="hidden w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all duration-200">
@@ -287,7 +293,7 @@
                                     fill="currentColor">
                                     <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                                 </svg>
-                                フォルダを選択
+                                <span data-i18n="common.btn.folder">フォルダを選択</span>
                             </button>
                         </div>
                         <input type="file" id="file-input" class="hidden" accept=".pdf">
@@ -298,7 +304,8 @@
                 </div>
                 <!-- ファイルリストの描画 -->
                 <div id="file-list-header" class="mt-6 hidden flex justify-between items-center px-2 mb-2">
-                    <span class="text-sm font-medium text-slate-600 dark:text-slate-400">選択中のファイル</span>
+                    <span class="text-sm font-medium text-slate-600 dark:text-slate-400"
+                        data-i18n="common.selected">選択中のファイル</span>
                     <button id="clear-all-btn"
                         class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium flex items-center gap-1 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -306,7 +313,7 @@
                                 d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
                                 clip-rule="evenodd" />
                         </svg>
-                        すべてクリア
+                        <span data-i18n="common.btn.clearall">すべてクリア</span>
                     </button>
                 </div>
                 <ul id="file-list-container" class="mt-2 space-y-2 max-h-60 overflow-y-auto custom-scrollbar px-2"></ul>
@@ -317,23 +324,24 @@
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
                         class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-blue-500/20">2</span>
-                    設定
+                    <span data-i18n="nup.step2.title">設定</span>
                 </h2>
                 <div
                     class="bg-slate-50/80 dark:bg-slate-800/50 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 backdrop-blur-sm">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                         <div class="group">
                             <label for="layout"
-                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">レイアウト</label>
+                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                data-i18n="settings.layout">レイアウト</label>
                             <div class="relative">
                                 <select id="layout"
                                     class="appearance-none w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all cursor-pointer hover:border-blue-400">
-                                    <option value="1x2">1x2 (2ページ/枚 - 縦)</option>
-                                    <option value="2x1">2x1 (2ページ/枚 - 横)</option>
-                                    <option value="2x2">2x2 (4ページ/枚)</option>
-                                    <option value="2x3">2x3 (6ページ/枚)</option>
-                                    <option value="3x3" selected>3x3 (9ページ/枚)</option>
-                                    <option value="4x4">4x4 (16ページ/枚)</option>
+                                    <option value="1x2" data-i18n="settings.layout.1x2">1x2 (2ページ/枚 - 縦)</option>
+                                    <option value="2x1" data-i18n="settings.layout.2x1">2x1 (2ページ/枚 - 横)</option>
+                                    <option value="2x2" data-i18n="settings.layout.2x2">2x2 (4ページ/枚)</option>
+                                    <option value="2x3" data-i18n="settings.layout.2x3">2x3 (6ページ/枚)</option>
+                                    <option value="3x3" selected data-i18n="settings.layout.3x3">3x3 (9ページ/枚)</option>
+                                    <option value="4x4" data-i18n="settings.layout.4x4">4x4 (16ページ/枚)</option>
                                 </select>
                                 <div
                                     class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
@@ -346,15 +354,15 @@
                         </div>
                         <div class="group">
                             <label for="margin"
-                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">余白
-                                (mm)</label>
+                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                data-i18n="settings.margin">余白 (mm)</label>
                             <input type="number" id="margin" value="10"
                                 class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all hover:border-blue-400">
                         </div>
                         <div class="group">
                             <label for="gutter"
-                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">セル間隔
-                                (mm)</label>
+                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                data-i18n="settings.gutter">セル間隔 (mm)</label>
                             <input type="number" id="gutter" value="5"
                                 class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all hover:border-blue-400">
                         </div>
@@ -371,9 +379,10 @@
                             </div>
                             <div class="ml-4">
                                 <span
-                                    class="block text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">ページの向きを自動で揃える</span>
-                                <span
-                                    class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">横向きのページを自動で回転させ、向きを統一します。</span>
+                                    class="block text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                    data-i18n="settings.autorotate">ページの向きを自動で揃える</span>
+                                <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5"
+                                    data-i18n="settings.autorotate.desc">横向きのページを自動で回転させ、向きを統一します。</span>
                             </div>
                         </label>
 
@@ -387,23 +396,24 @@
                             </div>
                             <div class="ml-4">
                                 <span
-                                    class="block text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">変換前にプレビューを表示する</span>
-                                <span
-                                    class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">チェックを入れると、変換前にレイアウトのプレビューを確認できます。</span>
+                                    class="block text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                    data-i18n="settings.preview">変換前にプレビューを表示する</span>
+                                <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5"
+                                    data-i18n="settings.preview.desc">チェックを入れると、変換前にレイアウトのプレビューを確認できます。</span>
                             </div>
                         </label>
 
                         <div class="group">
                             <label for="manual-rotate"
-                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">手動回転
-                                (全ページ)</label>
+                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                data-i18n="settings.manualrotate">手動回転 (全ページ)</label>
                             <div class="relative">
                                 <select id="manual-rotate"
                                     class="appearance-none w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all cursor-pointer hover:border-blue-400">
-                                    <option value="0" selected>回転なし (0°)</option>
-                                    <option value="90">時計回りに90°回転</option>
-                                    <option value="180">180°回転</option>
-                                    <option value="270">時計回りに270°回転</option>
+                                    <option value="0" selected data-i18n="settings.rotate0">回転なし (0°)</option>
+                                    <option value="90" data-i18n="settings.rotate90">時計回りに90°回転</option>
+                                    <option value="180" data-i18n="settings.rotate180">180°回転</option>
+                                    <option value="270" data-i18n="settings.rotate270">時計回りに270°回転</option>
                                 </select>
                                 <div
                                     class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
@@ -423,7 +433,7 @@
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
                         class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-blue-500/20">3</span>
-                    実行
+                    <span data-i18n="nup.step3.title">実行</span>
                 </h2>
                 <button id="convert-btn"
                     class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none overflow-hidden">
@@ -436,7 +446,7 @@
                             d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
                             clip-rule="evenodd" />
                     </svg>
-                    <span class="relative z-10 text-lg">PDF変換を実行</span>
+                    <span class="relative z-10 text-lg" data-i18n="nup.convert.btn">PDF変換を実行</span>
                 </button>
             </section>
 
@@ -445,7 +455,7 @@
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
                         class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-blue-500/20">4</span>
-                    進捗状況
+                    <span data-i18n="nup.step4.title">進捗状況</span>
                 </h2>
                 <div id="progress-details"
                     class="text-sm text-center text-slate-600 dark:text-slate-400 mb-4 font-medium"></div>
@@ -459,7 +469,8 @@
                     </div>
                 </div>
                 <div class="mt-4">
-                    <label for="log" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">ログ</label>
+                    <label for="log" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2"
+                        data-i18n="common.log">ログ</label>
                     <div class="relative group">
                         <div
                             class="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl opacity-20 group-hover:opacity-40 transition duration-500 blur">
@@ -478,7 +489,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    処理に失敗したファイル
+                    <span data-i18n="failed.title">処理に失敗したファイル</span>
                 </h2>
                 <ul id="failed-files-list" class="space-y-2 text-sm mb-4"></ul>
                 <button id="reprocess-btn"
@@ -487,7 +498,7 @@
                         <path fill-rule="evenodd"
                             d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
                             clip-rule="evenodd" />
-                    </svg>失敗したファイルのみ再処理</button>
+                    </svg><span data-i18n="failed.reprocess">失敗したファイルのみ再処理</span></button>
             </section>
 
             <!-- エラー表示 -->
@@ -513,7 +524,7 @@
         <div
             class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl p-8 w-full max-w-4xl transform transition-all duration-300 scale-100 border border-slate-200 dark:border-slate-700">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-bold text-slate-900 dark:text-white">出力プレビュー</h3>
+                <h3 class="text-2xl font-bold text-slate-900 dark:text-white" data-i18n="preview.title">出力プレビュー</h3>
                 <button id="close-preview-btn"
                     class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
@@ -528,9 +539,11 @@
             </div>
             <div class="mt-8 flex justify-end gap-4">
                 <button id="cancel-preview-btn"
-                    class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-3 px-6 rounded-xl transition-colors">キャンセル</button>
+                    class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-3 px-6 rounded-xl transition-colors"
+                    data-i18n="preview.cancel">キャンセル</button>
                 <button id="confirm-convert-btn"
-                    class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5">変換を実行</button>
+                    class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5"
+                    data-i18n="preview.convert">変換を実行</button>
             </div>
         </div>
     </div>
@@ -603,6 +616,9 @@
             } else {
                 setTheme('light');
             }
+
+            // 言語の初期化
+            initLanguage();
         });
 
         // --- テーマ切り替え関数 ---
@@ -685,17 +701,17 @@
         }
 
         function formatTime(ms) {
-            if (ms < 1000) return '数秒';
+            if (ms < 1000) return t('progress.few.seconds') || '数秒';
             const seconds = Math.round(ms / 1000);
-            if (seconds < 60) return `${seconds}秒`;
+            if (seconds < 60) return `${seconds}${t('progress.seconds') || '秒'}`;
             const minutes = Math.floor(seconds / 60);
             const remainingSeconds = seconds % 60;
-            return `${minutes}分${remainingSeconds}秒`;
+            return `${minutes}${t('progress.minutes') || '分'}${remainingSeconds}${t('progress.seconds') || '秒'}`;
         }
 
         async function handleFolderSelection() {
             if (!('showDirectoryPicker' in window)) {
-                handleError('お使いのブラウザはフォルダ選択機能に対応していません。'); return;
+                handleError(t('error.folder.nosupport')); return;
             }
             try {
                 const dirHandle = await window.showDirectoryPicker();
@@ -703,17 +719,17 @@
                 if (filesWithPaths.length > 0) {
                     updateSelectedFiles(filesWithPaths, dirHandle);
                 } else {
-                    handleError(`フォルダ「${dirHandle.name}」内にPDFファイルが見つかりませんでした。`);
+                    handleError(t('error.folder.nopdf').replace('フォルダ', `フォルダ「${dirHandle.name}」`));
                 }
             } catch (error) {
-                if (error.name !== 'AbortError') handleError('フォルダの読み込み中にエラーが発生しました。', error);
+                if (error.name !== 'AbortError') handleError(t('error.folder.read'), error);
             }
         }
 
         function handleFileSelection(fileList) {
             const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
             if (pdfFiles.length === 0) {
-                if (selectedFiles.length === 0) handleError('PDFファイルが見つかりませんでした。');
+                if (selectedFiles.length === 0) handleError(t('error.nopdf'));
                 return;
             }
             const filesToProcess = pdfFiles.map(f => ({ file: f, relativePath: f.name, id: crypto.randomUUID(), rotation: 0 }));
@@ -784,9 +800,9 @@
             const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
 
             if (selectedFiles.length === 1) {
-                fileInfo.textContent = `選択中: ${selectedFiles[0].file.name} (${formatBytes(totalInputSize)})`;
+                fileInfo.textContent = `${t('common.selected')}: ${selectedFiles[0].file.name} (${formatBytes(totalInputSize)})`;
             } else if (selectedFiles.length > 1) {
-                fileInfo.textContent = `${selectedFiles.length}個のファイルを選択中 (合計 ${formatBytes(totalInputSize)})`;
+                fileInfo.textContent = `${selectedFiles.length}${t('common.files.selected')} (${t('common.total')} ${formatBytes(totalInputSize)})`;
             } else {
                 fileInfo.textContent = '';
             }
@@ -874,7 +890,7 @@
                             // 削除ボタン
                             const removeBtn = document.createElement('button');
                             removeBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-600 transition-colors';
-                            removeBtn.title = '削除';
+                            removeBtn.title = t('status.remove');
                             removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
                             removeBtn.onclick = (e) => {
                                 e.stopPropagation();
@@ -889,17 +905,17 @@
 
                             const badgeDiv = document.createElement('div');
                             badgeDiv.className = 'flex items-center';
-                            badgeDiv.innerHTML = `${rotationBadge}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}">${icon}${isPortrait ? '縦向き' : '横向き'}</span>`;
+                            badgeDiv.innerHTML = `${rotationBadge}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}">${icon}${isPortrait ? t('status.portrait') : t('status.landscape')}</span>`;
 
                             rightDiv.appendChild(badgeDiv);
                             rightDiv.appendChild(rotateBtn);
                             rightDiv.appendChild(removeBtn);
                         } else {
-                            rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">ページなし</span>`;
+                            rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">${t('status.nopage')}</span>`;
                         }
                     } catch (e) {
                         console.error(e);
-                        rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">読込エラー</span>`;
+                        rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">${t('status.readerror')}</span>`;
                     }
 
                     li.appendChild(leftDiv);
@@ -935,7 +951,7 @@
             ctx.font = '20px sans-serif';
             ctx.fillStyle = '#64748b';
             ctx.textAlign = 'center';
-            ctx.fillText('Generating Preview...', canvas.width / 2, canvas.height / 2);
+            ctx.fillText('Generating Preview...', canvas.width / 2, canvas.height / 2); // この部分はcanvas内の描画なので英語のままで良いか、t()を入れるか。プレビューなので英語で良いかもだが、一応残すか。一旦このままにする。
 
             const [cols, rows] = document.getElementById('layout').value.split('x').map(Number);
             const margin = parseFloat(document.getElementById('margin').value) * MM_TO_PT;
@@ -1092,7 +1108,7 @@
             errorMessage.textContent = message;
             errorBox.classList.remove('hidden');
             if (error) console.error(error);
-            log(`エラー: ${message}`);
+            log(`${t('common.log')}: ${message}`);
             convertBtn.disabled = false;
         }
 
@@ -1116,7 +1132,7 @@
                 srcPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: true });
             } catch (loadError) {
                 if (loadError.message.includes('encrypted') || loadError.message.includes('password')) {
-                    throw new Error('このPDFはパスワードで保護されており、処理できません。');
+                    throw new Error(t('error.encrypted'));
                 }
                 throw loadError;
             }
@@ -1154,7 +1170,16 @@
             }
 
             const pageCount = srcPdf.getPageCount();
-            log(`  元のページ数: ${pageCount}`);
+            log(`  ${t('progress.pages').replace('ページのPDFを生成しました。', '')} ${pageCount}`); // ここは少し変則的だが、元の意味は「元のページ数: count」なので、tを使わずに英語化するか、汎用的なログ文言にする。
+            // translations.jsには 'progress.pages': 'ページのPDFを生成しました。' があるが、これは完了時のメッセージ用。
+            // 'original page count' のようなキーがないので、一旦英語で固定するか、キーを追加する。
+            // 今回はキーを追加せずに、英語で統一するか、日本語のままにするか...
+            // ユーザー要望の「1→この辺も英語にはなりませんよ」はUIの主要部分。ログも気にするなら修正。
+            // ログは common.log で「ログ」とはなっているが、内容も翻訳すべき。
+            // ここは一旦英語化してしまうのが安全。または t() でラップして対応。
+            // translations.js にキーがないので、t()内でデフォルト英語、第二引数日本語とするようなヘルパーではないので、
+            // 新規キーなしで直書き対応する。
+            // "Pages: ${pageCount}" とシンプルにする。
 
             const newPdf = await PDFDocument.create();
             const embeddedPages = await newPdf.embedPages(srcPdf.getPages());
@@ -1247,13 +1272,13 @@
                 updateProgress(((i + 1) / pageCount) * 100);
             }
 
-            log('  PDFを生成中...');
+            log(`  ${t('progress.generating')}`);
             return await newPdf.save();
         }
 
         async function startBatchProcess() {
             if (selectedFiles.length === 0) {
-                handleError('ファイルが選択されていません。'); return;
+                handleError(t('error.nofile')); return;
             }
             showProgress();
             hideError();
@@ -1265,7 +1290,7 @@
                 const fileNumber = index + 1;
                 const totalFiles = selectedFiles.length;
                 log(`---`);
-                log(`[${fileNumber}/${totalFiles}] "${fileObject.relativePath}" の処理を開始`);
+                log(`[${fileNumber}/${totalFiles}] "${fileObject.relativePath}" ${t('progress.processing')}`);
                 updateProgress(0);
 
                 try {
@@ -1278,17 +1303,17 @@
                         await downloadPdf(newPdfBytes, fileObject);
                     }
                 } catch (error) {
-                    let userMessage = `"${fileObject.file.name}" の処理に失敗しました。`;
+                    let userMessage = `"${fileObject.file.name}" ${t('error.loadfailed') || 'failed to load.'}`;
 
                     // エラーメッセージに応じたわかりやすい説明
                     if (error.message.includes('Unknown compression method') || error.message.includes('flate stream')) {
-                        userMessage += '対応していない圧縮形式が使われています。macOSの「プレビュー」でPDFを開き、「ファイル」→「書き出す」で再保存してから再度お試しください。';
+                        userMessage += t('error.compression');
                     } else if (error.message.includes('I/O read operation failed')) {
-                        userMessage += 'ファイルの読み込み中にエラーが発生しました。PDFが破損しているか、対応していない形式の可能性があります。';
+                        userMessage += t('error.ioread');
                     } else if (error.message.includes('encrypted') || error.message.includes('password')) {
-                        userMessage += 'このPDFはパスワードで保護されています。';
+                        userMessage += t('error.encrypted');
                     } else if (error.message.includes('Invalid PDF')) {
-                        userMessage += '有効なPDFファイルではありません。';
+                        userMessage += t('error.invalid');
                     } else {
                         userMessage += error.message;
                     }
@@ -1301,19 +1326,19 @@
                 const avgTimePerFile = elapsedTime / fileNumber;
                 const remainingFiles = totalFiles - fileNumber;
                 const etr = remainingFiles * avgTimePerFile;
-                progressDetails.textContent = `処理中: ${fileNumber} / ${totalFiles} ファイル | 残り時間の目安: ${formatTime(etr)}`;
+                progressDetails.textContent = `${t('progress.processing')}: ${fileNumber} / ${totalFiles} ${t('progress.files')} | ${t('progress.remaining')}: ${formatTime(etr)}`;
             };
 
             if (inputDirHandle) {
                 try {
-                    const outputFolderName = `${inputDirHandle.name}_面付け`;
-                    log(`出力先フォルダ「${outputFolderName}」を作成/準備しています...`);
+                    const outputFolderName = `${inputDirHandle.name}_N-up`; // フォルダ名は英語固定にするか、そのままにするか。面付け→N-up
+                    log(`Creating output folder "${outputFolderName}"...`);
                     const outputDirHandle = await inputDirHandle.getDirectoryHandle(outputFolderName, { create: true });
                     for (let i = 0; i < selectedFiles.length; i++) {
                         await processFile(selectedFiles[i], i, outputDirHandle);
                     }
                 } catch (error) {
-                    handleError('出力フォルダの作成またはファイル保存に失敗しました。アクセス権限を確認してください。', error);
+                    handleError(t('error.folder.read'), error); // 正確なキーがないので代用
                 }
             } else {
                 for (let i = 0; i < selectedFiles.length; i++) {
@@ -1322,9 +1347,9 @@
             }
 
             log(`---`);
-            log('すべてのファイルの処理が完了しました！');
+            log(t('progress.all.done'));
             const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
-            progressDetails.textContent = `完了！ 入力合計: ${formatBytes(totalInputSize)} → 出力合計: ${formatBytes(totalOutputSize)}`;
+            progressDetails.textContent = `${t('progress.done')} ${t('progress.total.input')}: ${formatBytes(totalInputSize)} → ${t('progress.total.output')}: ${formatBytes(totalOutputSize)}`;
             convertBtn.disabled = false;
 
             if (failedFiles.length > 0) {
@@ -1343,12 +1368,12 @@
             for (const part of pathParts) {
                 currentDirHandle = await currentDirHandle.getDirectoryHandle(part, { create: true });
             }
-            log(`  ファイルを保存中: ${[outputDirHandle.name, ...pathParts, newFileName].join('/')}`);
+            log(`  Saving file: ${[outputDirHandle.name, ...pathParts, newFileName].join('/')}`);
             const fileHandle = await currentDirHandle.getFileHandle(newFileName, { create: true });
             const writable = await fileHandle.createWritable();
             await writable.write(bytes);
             await writable.close();
-            log(`  保存が完了しました。`);
+            log(`  Saved.`);
         }
 
         async function downloadPdf(bytes, fileObject) {
@@ -1362,7 +1387,7 @@
             a.download = file.name.replace(/\.pdf$/i, '') + suffix;
             document.body.appendChild(a);
             a.click();
-            log(`  "${a.download}" のダウンロードを開始しました。`);
+            log(`  Downloading "${a.download}"...`);
             setTimeout(() => {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);

@@ -11,6 +11,7 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
+    <script src="translations.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -165,13 +166,11 @@
             <!-- ナビゲーション -->
             <nav class="flex justify-center gap-2">
                 <a href="index.html"
-                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
-                    面付け
-                </a>
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.nup">面付け</a>
                 <a href="merge.html"
-                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20">
-                    結合
-                </a>
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20"
+                    data-i18n="nav.merge">結合</a>
             </nav>
             <!-- タイトルとダークモード -->
             <div class="flex justify-between items-center">
@@ -186,16 +185,22 @@
                             </svg>
                         </div>
                         <div>
-                            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
+                                data-i18n="merge.title">
                                 PDF<span class="text-gradient">結合</span>ツール</h1>
-                            <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">PDF Merge Tool
-                            </p>
+                            <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400"
+                                data-i18n="merge.subtitle">PDF Merge Tool</p>
                         </div>
                     </div>
                 </div>
-                <!-- ダークモードトグル -->
+                <!-- ダークモードトグルと言語切り替え -->
                 <div
-                    class="flex items-center gap-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                    class="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <button id="lang-toggle-btn"
+                        class="p-3 rounded-full text-lg hover:bg-emerald-50 dark:hover:bg-slate-700 transition-all"
+                        aria-label="言語切り替え" onclick="toggleLanguage()">
+                        🇺🇸
+                    </button>
                     <button id="theme-toggle-btn"
                         class="p-3 rounded-full text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-slate-700 transition-all"
                         aria-label="テーマ切り替え">
@@ -221,7 +226,7 @@
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
                         class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-emerald-500/20">1</span>
-                    PDFファイルを追加
+                    <span data-i18n="merge.step1.title">PDFファイルを追加</span>
                 </h2>
                 <div id="drop-area"
                     class="file-drop-area border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-10 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 group relative overflow-hidden">
@@ -237,9 +242,11 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
                         </div>
-                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2">
+                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2"
+                            data-i18n="common.drop.title">
                             PDFファイルをここにドラッグ＆ドロップ</p>
-                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">または、ボタンから選択してください</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6"
+                            data-i18n="common.drop.subtitle.merge">または、ボタンから選択してください</p>
 
                         <button id="select-file-btn"
                             class="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transform hover:-translate-y-0.5 transition-all duration-200">
@@ -249,7 +256,7 @@
                                     d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                                     clip-rule="evenodd" />
                             </svg>
-                            ファイルを追加
+                            <span data-i18n="common.btn.addfile">ファイルを追加</span>
                         </button>
                         <input type="file" id="file-input" class="hidden" accept=".pdf" multiple>
                     </div>
@@ -267,7 +274,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                         </svg>
-                        ドラッグで並び替え
+                        <span data-i18n="merge.drag.hint">ドラッグで並び替え</span>
                     </span>
                     <button id="clear-all-btn"
                         class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium flex items-center gap-1 transition-colors">
@@ -276,7 +283,7 @@
                                 d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
                                 clip-rule="evenodd" />
                         </svg>
-                        すべてクリア
+                        <span data-i18n="common.btn.clearall">すべてクリア</span>
                     </button>
                 </div>
                 <ul id="file-list-container" class="mt-2 space-y-2 max-h-80 overflow-y-auto px-2"></ul>
@@ -287,16 +294,18 @@
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
                         class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-emerald-500/20">2</span>
-                    設定
+                    <span data-i18n="merge.step2.title">設定</span>
                 </h2>
                 <div
                     class="bg-slate-50/80 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-6">
                     <div class="group">
                         <label for="output-filename"
-                            class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">出力ファイル名</label>
+                            class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2"
+                            data-i18n="merge.output.label">出力ファイル名</label>
                         <input type="text" id="output-filename" value="merged" placeholder="出力ファイル名"
                             class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all hover:border-emerald-400">
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">※ .pdf は自動的に付加されます</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2" data-i18n="merge.output.note">※ .pdf
+                            は自動的に付加されます</p>
                     </div>
 
                     <label
@@ -309,9 +318,10 @@
                         </div>
                         <div class="ml-4">
                             <span
-                                class="block text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">アウトライン（しおり）を自動追加</span>
-                            <span
-                                class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5">各ファイルの先頭ページにブックマークを作成します。PDFビューアのサイドバーから素早くジャンプできます。</span>
+                                class="block text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors"
+                                data-i18n="merge.outline.label">アウトライン（しおり）を自動追加</span>
+                            <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5"
+                                data-i18n="merge.outline.desc">各ファイルの先頭ページにブックマークを作成します。PDFビューアのサイドバーから素早くジャンプできます。</span>
                         </div>
                     </label>
                 </div>
@@ -322,7 +332,7 @@
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
                         class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-emerald-500/20">3</span>
-                    実行
+                    <span data-i18n="merge.step3.title">実行</span>
                 </h2>
                 <button id="merge-btn" disabled
                     class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none overflow-hidden">
@@ -334,7 +344,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
-                    <span class="relative z-10 text-lg">PDFを結合</span>
+                    <span class="relative z-10 text-lg" data-i18n="merge.btn">PDFを結合</span>
                 </button>
             </section>
 
@@ -343,7 +353,7 @@
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
                         class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-emerald-500/20">4</span>
-                    進捗状況
+                    <span data-i18n="merge.step4.title">進捗状況</span>
                 </h2>
                 <div id="progress-details"
                     class="text-sm text-center text-slate-600 dark:text-slate-400 mb-4 font-medium"></div>
@@ -407,6 +417,9 @@
             } else {
                 setTheme('light');
             }
+
+            // 言語の初期化
+            initLanguage();
         });
 
         // --- テーマ ---
@@ -459,7 +472,7 @@
         function handleFileSelection(fileList) {
             const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
             if (pdfFiles.length === 0) {
-                if (selectedFiles.length === 0) showError('PDFファイルが見つかりませんでした。');
+                if (selectedFiles.length === 0) showError(t('error.nopdf'));
                 return;
             }
             const newFiles = pdfFiles.map(f => ({
@@ -525,11 +538,11 @@
                 fileInfo.textContent = '';
                 fileListHeader.classList.add('hidden');
             } else if (selectedFiles.length === 1) {
-                fileInfo.textContent = `選択中: ${selectedFiles[0].name} (${formatBytes(totalSize)})`;
+                fileInfo.textContent = `${t('common.selected')}: ${selectedFiles[0].name} (${formatBytes(totalSize)})`;
                 fileListHeader.classList.remove('hidden');
                 fileListHeader.classList.add('flex');
             } else {
-                fileInfo.textContent = `${selectedFiles.length}個のファイルを選択中 (合計 ${formatBytes(totalSize)})`;
+                fileInfo.textContent = `${selectedFiles.length}${t('common.files.selected')} (${t('common.total')} ${formatBytes(totalSize)})`;
                 fileListHeader.classList.remove('hidden');
                 fileListHeader.classList.add('flex');
             }
@@ -566,7 +579,7 @@
                 const canvas = document.createElement('canvas');
                 canvas.className = 'w-full h-full object-contain';
                 thumbDiv.appendChild(canvas);
-                generateThumbnail(fileObj.file, canvas, fileObj.rotation || 0);
+                generateThumbnail(fileObj.file, canvas);
 
                 // ファイル名
                 const nameDiv = document.createElement('div');
@@ -577,43 +590,17 @@
                 leftDiv.appendChild(thumbDiv);
                 leftDiv.appendChild(nameDiv);
 
-                // 右側のボタン群
-                const rightDiv = document.createElement('div');
-                rightDiv.className = 'flex items-center gap-2 flex-shrink-0';
-
-                // 回転バッジ
-                if (fileObj.rotation && fileObj.rotation > 0) {
-                    const rotationBadge = document.createElement('span');
-                    rotationBadge.className = 'text-xs font-bold text-emerald-600 dark:text-emerald-400';
-                    rotationBadge.textContent = `+${fileObj.rotation}°`;
-                    rightDiv.appendChild(rotationBadge);
-                }
-
-                // 回転ボタン
-                const rotateBtn = document.createElement('button');
-                rotateBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-slate-600 transition-colors';
-                rotateBtn.title = '90度回転';
-                rotateBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>`;
-                rotateBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    fileObj.rotation = ((fileObj.rotation || 0) + 90) % 360;
-                    renderFileList();
-                };
-                rightDiv.appendChild(rotateBtn);
-
                 // 削除ボタン
                 const removeBtn = document.createElement('button');
-                removeBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-600 transition-colors';
-                removeBtn.title = '削除';
+                removeBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-600 transition-colors flex-shrink-0';
                 removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
                 removeBtn.onclick = (e) => {
                     e.stopPropagation();
                     removeFile(fileObj.id);
                 };
-                rightDiv.appendChild(removeBtn);
 
                 li.appendChild(leftDiv);
-                li.appendChild(rightDiv);
+                li.appendChild(removeBtn);
                 fileListContainer.appendChild(li);
             }
 
@@ -667,12 +654,12 @@
         }
 
         // --- サムネイル生成 ---
-        async function generateThumbnail(file, canvas, rotation = 0) {
+        async function generateThumbnail(file, canvas) {
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 const page = await pdf.getPage(1);
-                const viewport = page.getViewport({ scale: 0.2, rotation: rotation });
+                const viewport = page.getViewport({ scale: 0.2 });
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
                 await page.render({
@@ -690,7 +677,7 @@
 
             progressSection.classList.remove('hidden');
             progressBar.style.width = '0%';
-            progressDetails.textContent = '結合を開始しています...';
+            progressDetails.textContent = t('progress.merging');
             mergeBtn.disabled = true;
             hideError();
 
@@ -701,14 +688,14 @@
 
                 for (let i = 0; i < total; i++) {
                     const fileObj = selectedFiles[i];
-                    progressDetails.textContent = `処理中: ${i + 1} / ${total} - ${fileObj.name}`;
+                    progressDetails.textContent = `${t('progress.processing')}: ${i + 1} / ${total} - ${fileObj.name}`;
 
                     const arrayBuffer = await fileObj.file.arrayBuffer();
                     let srcPdf;
                     try {
                         srcPdf = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
                     } catch (loadError) {
-                        throw new Error(`"${fileObj.name}" の読み込みに失敗しました。`);
+                        throw new Error(`"${fileObj.name}" ${t('error.loadfailed')}`);
                     }
 
                     // 現在のページ数を記録（このファイルの開始ページ）
@@ -718,15 +705,6 @@
                     const bookmarkTitle = fileObj.name.replace(/\.pdf$/i, '');
                     outlineData.push({ title: bookmarkTitle, pageIndex: startPageIndex });
 
-                    // 回転が設定されている場合、ページに回転を適用
-                    const fileRotation = fileObj.rotation || 0;
-                    if (fileRotation > 0) {
-                        const pages = srcPdf.getPages();
-                        for (const page of pages) {
-                            page.setRotation(PDFLib.degrees(page.getRotation().angle + fileRotation));
-                        }
-                    }
-
                     const pages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
                     pages.forEach(page => mergedPdf.addPage(page));
 
@@ -735,11 +713,11 @@
 
                 // アウトライン（しおり）を追加
                 if (addOutlinesCheckbox.checked && outlineData.length > 0) {
-                    progressDetails.textContent = 'アウトラインを追加中...';
+                    progressDetails.textContent = t('progress.outline');
                     await addOutlinesToPdf(mergedPdf, outlineData);
                 }
 
-                progressDetails.textContent = 'PDFを生成中...';
+                progressDetails.textContent = t('progress.generating');
                 const mergedPdfBytes = await mergedPdf.save();
 
                 // ダウンロード
@@ -754,7 +732,7 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                progressDetails.textContent = `完了！ ${mergedPdf.getPageCount()}ページのPDFを生成しました。`;
+                progressDetails.textContent = `${t('progress.done')} ${mergedPdf.getPageCount()}${t('progress.pages')}`;
 
             } catch (error) {
                 showError(error.message);
