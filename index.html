@@ -1266,7 +1266,9 @@
                     let userMessage = `"${fileObject.file.name}" の処理に失敗しました。`;
 
                     // エラーメッセージに応じたわかりやすい説明
-                    if (error.message.includes('I/O read operation failed')) {
+                    if (error.message.includes('Unknown compression method') || error.message.includes('flate stream')) {
+                        userMessage += '対応していない圧縮形式が使われています。macOSの「プレビュー」でPDFを開き、「ファイル」→「書き出す」で再保存してから再度お試しください。';
+                    } else if (error.message.includes('I/O read operation failed')) {
                         userMessage += 'ファイルの読み込み中にエラーが発生しました。PDFが破損しているか、対応していない形式の可能性があります。';
                     } else if (error.message.includes('encrypted') || error.message.includes('password')) {
                         userMessage += 'このPDFはパスワードで保護されています。';
