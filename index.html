@@ -261,13 +261,13 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
                                     fill="currentColor">
                                     <path fill-rule="evenodd"
-                                        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                                         clip-rule="evenodd" />
                                 </svg>
-                                ファイルを選択
+                                ファイルを追加
                             </button>
                             <button id="select-folder-btn"
-                                class="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all duration-200">
+                                class="hidden w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all duration-200">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
                                     fill="currentColor">
                                     <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -275,17 +275,26 @@
                                 フォルダを選択
                             </button>
                         </div>
-                        <input type="file" id="file-input" class="hidden" accept=".pdf" multiple>
-                        <p id="folder-support-note"
-                            class="text-xs text-slate-400 dark:text-slate-500 mt-4 hidden bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-                            ※フォルダ機能はChrome/Edge等で対応</p>
+                        <input type="file" id="file-input" class="hidden" accept=".pdf">
                     </div>
                 </div>
                 <div id="file-info"
                     class="mt-4 text-center text-slate-600 dark:text-slate-400 font-medium h-6 transition-all duration-300">
                 </div>
                 <!-- ファイルリストの描画 -->
-                <ul id="file-list-container" class="mt-6 space-y-2 max-h-60 overflow-y-auto custom-scrollbar px-2"></ul>
+                <div id="file-list-header" class="mt-6 hidden flex justify-between items-center px-2 mb-2">
+                    <span class="text-sm font-medium text-slate-600 dark:text-slate-400">選択中のファイル</span>
+                    <button id="clear-all-btn"
+                        class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium flex items-center gap-1 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        すべてクリア
+                    </button>
+                </div>
+                <ul id="file-list-container" class="mt-2 space-y-2 max-h-60 overflow-y-auto custom-scrollbar px-2"></ul>
             </section>
 
             <!-- 2. 設定 -->
@@ -554,12 +563,20 @@
         let failedFiles = [];
 
         // --- 初期化処理 ---
+        const fileListHeader = document.getElementById('file-list-header');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+
+        // モバイル判定
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            if ('showDirectoryPicker' in window) {
-                folderSupportNote.classList.remove('hidden');
-            } else {
-                selectFolderBtn.disabled = true;
-                selectFolderBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            // デスクトップかつFile System Access API対応の場合のみフォルダボタンを表示
+            if ('showDirectoryPicker' in window && !isMobileDevice()) {
+                selectFolderBtn.classList.remove('hidden');
+                selectFolderBtn.classList.add('flex');
             }
 
             // テーマの初期化
@@ -609,7 +626,11 @@
         });
 
         selectFileBtn.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => handleFileSelection(e.target.files));
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelection(e.target.files);
+            fileInput.value = ''; // 同じファイルを再度選択できるようにリセット
+        });
+        clearAllBtn.addEventListener('click', clearAllFiles);
         selectFolderBtn.addEventListener('click', handleFolderSelection);
         dropArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.add('dragging'); });
         dropArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragging'); });
@@ -680,8 +701,25 @@
                 if (selectedFiles.length === 0) handleError('PDFファイルが見つかりませんでした。');
                 return;
             }
-            const filesToProcess = pdfFiles.map(f => ({ file: f, relativePath: f.name }));
-            updateSelectedFiles(filesToProcess, null);
+            const filesToProcess = pdfFiles.map(f => ({ file: f, relativePath: f.name, id: crypto.randomUUID(), rotation: 0 }));
+            // 既存のリストに追加（上書きではない）
+            addFilesToList(filesToProcess);
+        }
+
+        function addFilesToList(newFiles) {
+            selectedFiles = [...selectedFiles, ...newFiles];
+            renderFileList();
+        }
+
+        function removeFileFromList(fileId) {
+            selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+            renderFileList();
+        }
+
+        function clearAllFiles() {
+            selectedFiles = [];
+            inputDirHandle = null;
+            renderFileList();
         }
 
         async function handleDrop(dataTransfer) {
@@ -721,7 +759,7 @@
         }
 
         async function updateSelectedFiles(filesToProcess, dirHandle = null) {
-            selectedFiles = filesToProcess.map(f => ({ ...f, id: crypto.randomUUID(), rotation: 0 }));
+            selectedFiles = filesToProcess.map(f => ({ ...f, id: f.id || crypto.randomUUID(), rotation: f.rotation || 0 }));
             inputDirHandle = dirHandle;
 
             await renderFileList();
@@ -731,11 +769,20 @@
             const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
 
             if (selectedFiles.length === 1) {
-                fileInfo.textContent = `選択中のファイル: ${selectedFiles[0].file.name} (${formatBytes(totalInputSize)})`;
+                fileInfo.textContent = `選択中: ${selectedFiles[0].file.name} (${formatBytes(totalInputSize)})`;
             } else if (selectedFiles.length > 1) {
                 fileInfo.textContent = `${selectedFiles.length}個のファイルを選択中 (合計 ${formatBytes(totalInputSize)})`;
             } else {
                 fileInfo.textContent = '';
+            }
+
+            // ファイルリストヘッダーの表示/非表示
+            if (selectedFiles.length > 0) {
+                fileListHeader.classList.remove('hidden');
+                fileListHeader.classList.add('flex');
+            } else {
+                fileListHeader.classList.add('hidden');
+                fileListHeader.classList.remove('flex');
             }
 
             fileListContainer.innerHTML = '';
@@ -809,6 +856,16 @@
                                 renderFileList(); // バッジを更新するために再描画
                             };
 
+                            // 削除ボタン
+                            const removeBtn = document.createElement('button');
+                            removeBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-600 transition-colors';
+                            removeBtn.title = '削除';
+                            removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
+                            removeBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                removeFileFromList(fileObj.id);
+                            };
+
                             // 回転バッジ (回転されている場合)
                             let rotationBadge = '';
                             if (fileObj.rotation > 0) {
@@ -821,6 +878,7 @@
 
                             rightDiv.appendChild(badgeDiv);
                             rightDiv.appendChild(rotateBtn);
+                            rightDiv.appendChild(removeBtn);
                         } else {
                             rightDiv.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">ページなし</span>`;
                         }
@@ -1196,7 +1254,20 @@
                         await downloadPdf(newPdfBytes, fileObject);
                     }
                 } catch (error) {
-                    handleError(`"${fileObject.file.name}" の処理に失敗しました。${error.message}`, error);
+                    let userMessage = `"${fileObject.file.name}" の処理に失敗しました。`;
+
+                    // エラーメッセージに応じたわかりやすい説明
+                    if (error.message.includes('I/O read operation failed')) {
+                        userMessage += 'ファイルの読み込み中にエラーが発生しました。PDFが破損しているか、対応していない形式の可能性があります。';
+                    } else if (error.message.includes('encrypted') || error.message.includes('password')) {
+                        userMessage += 'このPDFはパスワードで保護されています。';
+                    } else if (error.message.includes('Invalid PDF')) {
+                        userMessage += '有効なPDFファイルではありません。';
+                    } else {
+                        userMessage += error.message;
+                    }
+
+                    handleError(userMessage, error);
                     failedFiles.push(fileObject);
                 }
 
