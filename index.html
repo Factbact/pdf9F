@@ -1268,7 +1268,7 @@
                     drawY += drawnVisualHeight;
                 }
 
-                currentPage.drawPage(embeddedPage, { x: drawX, y: drawY, width: drawnWidth, height: drawnHeight });
+                currentPage.drawPage(embeddedPage, { x: drawX, y: drawY, width: drawnWidth, height: drawnHeight, rotate: degrees(rotation) });
                 updateProgress(((i + 1) / pageCount) * 100);
             }
 
