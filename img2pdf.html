@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HEIC to PNG 変換ツール</title>
+    <title>画像→PDF変換ツール</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="translations.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,16 +26,16 @@
                     },
                     colors: {
                         primary: {
-                            50: '#fdf4ff',
-                            100: '#fae8ff',
-                            200: '#f5d0fe',
-                            300: '#f0abfc',
-                            400: '#e879f9',
-                            500: '#d946ef',
-                            600: '#c026d3',
-                            700: '#a21caf',
-                            800: '#86198f',
-                            900: '#701a75',
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
                         },
                         dark: {
                             bg: '#0f172a',
@@ -92,11 +93,11 @@
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-image: linear-gradient(to right, #d946ef, #a21caf);
+            background-image: linear-gradient(to right, #f97316, #ea580c);
         }
 
         .dark .text-gradient {
-            background-image: linear-gradient(to right, #e879f9, #d946ef);
+            background-image: linear-gradient(to right, #fb923c, #f97316);
         }
 
         .file-drop-area {
@@ -109,9 +110,9 @@
         }
 
         .file-drop-area.dragging {
-            background-color: rgba(217, 70, 239, 0.1);
+            background-color: rgba(249, 115, 22, 0.1);
             transform: scale(1.01);
-            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23D946EFFF' stroke-width='3' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23F97316FF' stroke-width='3' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
         }
 
         ::-webkit-scrollbar {
@@ -135,15 +136,15 @@
 </head>
 
 <body
-    class="bg-slate-50 dark:bg-dark-bg text-slate-800 dark:text-slate-200 font-sans antialiased transition-colors duration-300 min-h-screen selection:bg-fuchsia-500 selection:text-white">
+    class="bg-slate-50 dark:bg-dark-bg text-slate-800 dark:text-slate-200 font-sans antialiased transition-colors duration-300 min-h-screen selection:bg-orange-500 selection:text-white">
 
     <!-- 背景装飾 -->
     <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div
-            class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-400/20 blur-[100px] dark:bg-fuchsia-900/20">
+            class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-orange-400/20 blur-[100px] dark:bg-orange-900/20">
         </div>
         <div
-            class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-purple-400/20 blur-[100px] dark:bg-purple-900/20">
+            class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-amber-400/20 blur-[100px] dark:bg-amber-900/20">
         </div>
     </div>
 
@@ -160,10 +161,10 @@
                     class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                     data-i18n="nav.merge">結合</a>
                 <a href="heic.html"
-                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-lg shadow-fuchsia-500/20"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                     data-i18n="nav.heic">HEIC変換</a>
                 <a href="img2pdf.html"
-                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20"
                     data-i18n="nav.img2pdf">画像→PDF</a>
             </nav>
             <!-- タイトルとダークモード -->
@@ -171,7 +172,7 @@
                 <div class="text-left">
                     <div class="flex items-center gap-3">
                         <div
-                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center shadow-lg shadow-fuchsia-500/30 text-white">
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-500/30 text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                                 stroke="currentColor" class="w-6 h-6">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -180,10 +181,10 @@
                         </div>
                         <div>
                             <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
-                                data-i18n="heic.title">
-                                HEIC to <span class="text-gradient">PNG</span></h1>
+                                data-i18n="img2pdf.title">
+                                画像 → <span class="text-gradient">PDF</span></h1>
                             <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400"
-                                data-i18n="heic.subtitle">Image Converter</p>
+                                data-i18n="img2pdf.subtitle">Image to PDF Converter</p>
                         </div>
                     </div>
                 </div>
@@ -191,7 +192,7 @@
                 <div
                     class="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
                     <button id="lang-toggle-btn"
-                        class="p-3 rounded-full text-lg hover:bg-fuchsia-50 dark:hover:bg-slate-700 transition-all"
+                        class="p-3 rounded-full text-lg hover:bg-orange-50 dark:hover:bg-slate-700 transition-all"
                         aria-label="言語切り替え" onclick="toggleLanguage()">
                         🇺🇸
                     </button>
@@ -215,35 +216,35 @@
 
         <main class="glass-card rounded-3xl p-6 md:p-10 space-y-12 animate-slide-up">
 
-            <!-- 1. ファイルを追加 -->
+            <!-- 1. 画像を追加 -->
             <section>
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
-                        class="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-fuchsia-500/20">1</span>
-                    <span data-i18n="heic.step1.title">HEICファイルを追加</span>
+                        class="bg-gradient-to-br from-orange-500 to-amber-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-orange-500/20">1</span>
+                    <span data-i18n="img2pdf.step1.title">画像を追加</span>
                 </h2>
                 <div id="drop-area"
                     class="file-drop-area border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-10 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 group relative overflow-hidden">
                     <div
-                        class="absolute inset-0 bg-gradient-to-br from-fuchsia-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        class="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                     </div>
                     <div class="relative z-10 flex flex-col items-center justify-center">
                         <div
-                            class="w-20 h-20 mb-6 rounded-full bg-fuchsia-50 dark:bg-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                            <svg class="w-10 h-10 text-fuchsia-500 dark:text-fuchsia-400"
+                            class="w-20 h-20 mb-6 rounded-full bg-orange-50 dark:bg-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-10 h-10 text-orange-500 dark:text-orange-400"
                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
                         </div>
                         <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2"
-                            data-i18n="heic.drop.title">
-                            HEICファイルをここにドラッグ＆ドロップ</p>
-                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6" data-i18n="heic.drop.subtitle">
-                            または、ボタンから選択してください</p>
+                            data-i18n="img2pdf.drop.title">
+                            画像をここにドラッグ＆ドロップ</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6" data-i18n="img2pdf.drop.subtitle">
+                            JPG, PNG, GIF, WebP, HEIC対応</p>
 
                         <button id="select-file-btn"
-                            class="flex items-center justify-center gap-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-fuchsia-500/20 hover:shadow-fuchsia-500/40 transform hover:-translate-y-0.5 transition-all duration-200">
+                            class="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transform hover:-translate-y-0.5 transition-all duration-200">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
                                 fill="currentColor">
                                 <path fill-rule="evenodd"
@@ -252,7 +253,7 @@
                             </svg>
                             <span data-i18n="common.btn.addfile">ファイルを追加</span>
                         </button>
-                        <input type="file" id="file-input" class="hidden" accept=".heic,.HEIC" multiple>
+                        <input type="file" id="file-input" class="hidden" accept="image/*,.heic,.HEIC" multiple>
                     </div>
                 </div>
 
@@ -262,8 +263,8 @@
 
                 <!-- ファイルリスト -->
                 <div id="file-list-header" class="mt-6 hidden flex justify-between items-center px-2 mb-2">
-                    <span class="text-sm font-medium text-slate-600 dark:text-slate-400" data-i18n="heic.filecount">
-                        選択中のファイル
+                    <span class="text-sm font-medium text-slate-600 dark:text-slate-400" data-i18n="img2pdf.filecount">
+                        選択中の画像
                     </span>
                     <button id="clear-all-btn"
                         class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium flex items-center gap-1 transition-colors">
@@ -275,55 +276,97 @@
                         <span data-i18n="common.btn.clearall">すべてクリア</span>
                     </button>
                 </div>
-                <ul id="file-list-container" class="mt-2 space-y-2 max-h-80 overflow-y-auto px-2"></ul>
+                <div id="file-list-container" class="mt-2 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 px-2">
+                </div>
             </section>
 
-            <!-- 2. 変換 -->
+            <!-- 2. 設定 -->
             <section>
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
-                        class="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-fuchsia-500/20">2</span>
-                    <span data-i18n="heic.step2.title">変換</span>
+                        class="bg-gradient-to-br from-orange-500 to-amber-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-orange-500/20">2</span>
+                    <span data-i18n="img2pdf.step2.title">設定</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ページサイズ -->
+                    <div class="group">
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+                            data-i18n="img2pdf.settings.pagesize">ページサイズ</label>
+                        <select id="page-size"
+                            class="w-full p-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all">
+                            <option value="a4" data-i18n="img2pdf.settings.pagesize.a4">A4</option>
+                            <option value="a3" data-i18n="img2pdf.settings.pagesize.a3">A3</option>
+                            <option value="b5" data-i18n="img2pdf.settings.pagesize.b5">B5</option>
+                            <option value="fit" data-i18n="img2pdf.settings.pagesize.fit">画像に合わせる</option>
+                        </select>
+                    </div>
+                    <!-- 向き -->
+                    <div class="group">
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+                            data-i18n="img2pdf.settings.orientation">向き</label>
+                        <select id="orientation"
+                            class="w-full p-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all">
+                            <option value="auto" data-i18n="img2pdf.settings.orientation.auto">自動（画像に合わせる）</option>
+                            <option value="portrait" data-i18n="img2pdf.settings.orientation.portrait">縦</option>
+                            <option value="landscape" data-i18n="img2pdf.settings.orientation.landscape">横</option>
+                        </select>
+                    </div>
+                    <!-- 余白 -->
+                    <div class="group">
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+                            data-i18n="img2pdf.settings.margin">余白</label>
+                        <select id="margin"
+                            class="w-full p-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all">
+                            <option value="0" data-i18n="img2pdf.settings.margin.none">なし</option>
+                            <option value="10" data-i18n="img2pdf.settings.margin.small">小（10mm）</option>
+                            <option value="20" data-i18n="img2pdf.settings.margin.medium">中（20mm）</option>
+                            <option value="30" data-i18n="img2pdf.settings.margin.large">大（30mm）</option>
+                        </select>
+                    </div>
+                    <!-- 配置 -->
+                    <div class="group">
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+                            data-i18n="img2pdf.settings.alignment">画像配置</label>
+                        <select id="alignment"
+                            class="w-full p-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-200 font-medium focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all">
+                            <option value="fit" data-i18n="img2pdf.settings.alignment.fit">フィット（余白を埋める）</option>
+                            <option value="center" data-i18n="img2pdf.settings.alignment.center">中央配置</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 変換 -->
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-orange-500 to-amber-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-orange-500/20">3</span>
+                    <span data-i18n="img2pdf.step3.title">変換</span>
                 </h2>
                 <button id="convert-btn" disabled
-                    class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-fuchsia-500/30 hover:shadow-fuchsia-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none overflow-hidden">
+                    class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none overflow-hidden">
                     <div
                         class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                     </div>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 relative z-10" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
-                    <span class="relative z-10 text-lg" data-i18n="heic.btn.convert">PNGに変換</span>
+                    <span class="relative z-10 text-lg" data-i18n="img2pdf.btn.convert">PDFに変換</span>
                 </button>
             </section>
 
             <!-- 進捗 -->
             <section id="progress-section" class="hidden animate-fade-in">
-                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
-                    <span
-                        class="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-fuchsia-500/20">3</span>
-                    <span data-i18n="heic.step3.title">進捗状況</span>
-                </h2>
                 <div id="progress-details"
                     class="text-sm text-center text-slate-600 dark:text-slate-400 mb-4 font-medium"></div>
                 <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 overflow-hidden">
                     <div id="progress-bar"
-                        class="bg-gradient-to-r from-fuchsia-500 to-purple-600 h-full rounded-full transition-all duration-300"
+                        class="bg-gradient-to-r from-orange-500 to-amber-600 h-full rounded-full transition-all duration-300"
                         style="width: 0%">
                     </div>
                 </div>
-            </section>
-
-            <!-- 結果 -->
-            <section id="results-section" class="hidden animate-fade-in">
-                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
-                    <span
-                        class="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-fuchsia-500/20">✓</span>
-                    <span data-i18n="heic.results.title">変換結果</span>
-                </h2>
-                <div id="results-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
             </section>
 
             <!-- エラー表示 -->
@@ -344,6 +387,13 @@
     </div>
 
     <script>
+        const MM_TO_PT = 2.83465;
+        const PAPER_SIZES = {
+            'a4': { width: 210, height: 297 },
+            'a3': { width: 297, height: 420 },
+            'b5': { width: 182, height: 257 }
+        };
+
         // DOM要素
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('file-input');
@@ -356,8 +406,6 @@
         const progressSection = document.getElementById('progress-section');
         const progressBar = document.getElementById('progress-bar');
         const progressDetails = document.getElementById('progress-details');
-        const resultsSection = document.getElementById('results-section');
-        const resultsGrid = document.getElementById('results-grid');
         const errorBox = document.getElementById('error-box');
         const errorMessage = document.getElementById('error-message');
         const themeToggleBtn = document.getElementById('theme-toggle-btn');
@@ -405,7 +453,7 @@
             fileInput.value = '';
         });
         clearAllBtn.addEventListener('click', clearAllFiles);
-        convertBtn.addEventListener('click', convertFiles);
+        convertBtn.addEventListener('click', convertToPdf);
 
         dropArea.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -425,21 +473,50 @@
         });
 
         // --- ファイル操作 ---
-        function handleFileSelection(fileList) {
-            const heicFiles = Array.from(fileList).filter(f =>
-                f.name.toLowerCase().endsWith('.heic') || f.type === 'image/heic'
+        async function handleFileSelection(fileList) {
+            const imageFiles = Array.from(fileList).filter(f =>
+                f.type.startsWith('image/') || f.name.toLowerCase().endsWith('.heic')
             );
-            if (heicFiles.length === 0) {
-                if (selectedFiles.length === 0) showError(t('heic.error.noheic') || 'HEICファイルを選択してください');
+            if (imageFiles.length === 0) {
+                if (selectedFiles.length === 0) showError(t('img2pdf.error.noimage') || '画像ファイルを選択してください');
                 return;
             }
-            const newFiles = heicFiles.map(f => ({
-                file: f,
-                name: f.name,
-                id: crypto.randomUUID()
-            }));
-            selectedFiles = [...selectedFiles, ...newFiles];
+
+            for (const file of imageFiles) {
+                let processedFile = file;
+                let thumbnail = null;
+
+                // HEIC変換
+                if (file.name.toLowerCase().endsWith('.heic')) {
+                    try {
+                        const pngBlob = await heic2any({ blob: file, toType: 'image/png', quality: 0.8 });
+                        processedFile = new File([pngBlob], file.name.replace(/\.heic$/i, '.png'), { type: 'image/png' });
+                    } catch (e) {
+                        console.error('HEIC conversion error:', e);
+                        continue;
+                    }
+                }
+
+                // サムネイル生成
+                thumbnail = await createThumbnail(processedFile);
+
+                selectedFiles.push({
+                    file: processedFile,
+                    originalFile: file,
+                    name: file.name,
+                    thumbnail,
+                    id: crypto.randomUUID()
+                });
+            }
             renderFileList();
+        }
+
+        function createThumbnail(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
         }
 
         function removeFile(id) {
@@ -450,8 +527,6 @@
         function clearAllFiles() {
             selectedFiles = [];
             renderFileList();
-            resultsSection.classList.add('hidden');
-            resultsGrid.innerHTML = '';
         }
 
         function formatBytes(bytes, decimals = 2) {
@@ -469,12 +544,8 @@
             if (selectedFiles.length === 0) {
                 fileInfo.textContent = '';
                 fileListHeader.classList.add('hidden');
-            } else if (selectedFiles.length === 1) {
-                fileInfo.textContent = `${t('common.selected') || '選択中'}: ${selectedFiles[0].name} (${formatBytes(totalSize)})`;
-                fileListHeader.classList.remove('hidden');
-                fileListHeader.classList.add('flex');
             } else {
-                fileInfo.textContent = `${selectedFiles.length}${t('common.files.selected') || 'ファイル選択中'} (${formatBytes(totalSize)})`;
+                fileInfo.textContent = `${selectedFiles.length}${t('common.files.selected') || '枚選択中'} (${formatBytes(totalSize)})`;
                 fileListHeader.classList.remove('hidden');
                 fileListHeader.classList.add('flex');
             }
@@ -483,135 +554,147 @@
 
             for (let i = 0; i < selectedFiles.length; i++) {
                 const fileObj = selectedFiles[i];
-                const li = document.createElement('li');
-                li.className = 'bg-white dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm animate-fade-in';
+                const div = document.createElement('div');
+                div.className = 'relative group bg-white dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-fade-in';
 
-                const leftDiv = document.createElement('div');
-                leftDiv.className = 'flex items-center gap-3 overflow-hidden';
+                div.innerHTML = `
+                    <div class="aspect-square bg-slate-100 dark:bg-slate-600 overflow-hidden">
+                        <img src="${fileObj.thumbnail}" alt="${fileObj.name}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="absolute top-1 left-1 bg-orange-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">${i + 1}</div>
+                    <button class="remove-btn absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" data-id="${fileObj.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                    <div class="p-2">
+                        <p class="text-xs text-slate-600 dark:text-slate-300 truncate">${fileObj.name}</p>
+                    </div>
+                `;
 
-                const orderBadge = document.createElement('span');
-                orderBadge.className = 'flex-shrink-0 w-6 h-6 rounded-full bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-700 dark:text-fuchsia-300 text-xs font-bold flex items-center justify-center';
-                orderBadge.textContent = i + 1;
-
-                const iconDiv = document.createElement('div');
-                iconDiv.className = 'w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0';
-                iconDiv.innerHTML = `<svg class="w-5 h-5 text-fuchsia-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                </svg>`;
-
-                const nameDiv = document.createElement('div');
-                nameDiv.className = 'truncate';
-                nameDiv.innerHTML = `<div class="font-medium text-slate-700 dark:text-slate-200 truncate">${fileObj.name}</div><div class="text-xs text-slate-500 dark:text-slate-400">${formatBytes(fileObj.file.size)}</div>`;
-
-                leftDiv.appendChild(orderBadge);
-                leftDiv.appendChild(iconDiv);
-                leftDiv.appendChild(nameDiv);
-
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-600 transition-colors flex-shrink-0';
-                removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
-                removeBtn.onclick = (e) => {
+                div.querySelector('.remove-btn').addEventListener('click', (e) => {
                     e.stopPropagation();
                     removeFile(fileObj.id);
-                };
+                });
 
-                li.appendChild(leftDiv);
-                li.appendChild(removeBtn);
-                fileListContainer.appendChild(li);
+                fileListContainer.appendChild(div);
             }
 
             convertBtn.disabled = selectedFiles.length === 0;
             hideError();
         }
 
-        // --- 変換 ---
-        async function convertFiles() {
+        // --- PDF変換 ---
+        async function convertToPdf() {
             if (selectedFiles.length === 0) return;
 
             progressSection.classList.remove('hidden');
             progressBar.style.width = '0%';
-            progressDetails.textContent = t('heic.progress.converting') || '変換中...';
+            progressDetails.textContent = t('img2pdf.progress.converting') || '変換中...';
             convertBtn.disabled = true;
-            resultsSection.classList.add('hidden');
-            resultsGrid.innerHTML = '';
             hideError();
 
-            const results = [];
-
             try {
+                const { PDFDocument } = PDFLib;
+                const pdfDoc = await PDFDocument.create();
+
+                const pageSizeOption = document.getElementById('page-size').value;
+                const orientationOption = document.getElementById('orientation').value;
+                const marginMm = parseFloat(document.getElementById('margin').value);
+                const alignmentOption = document.getElementById('alignment').value;
+                const margin = marginMm * MM_TO_PT;
+
                 for (let i = 0; i < selectedFiles.length; i++) {
                     const fileObj = selectedFiles[i];
-                    progressDetails.textContent = `${t('heic.progress.converting') || '変換中'}: ${i + 1} / ${selectedFiles.length} - ${fileObj.name}`;
+                    progressDetails.textContent = `${t('img2pdf.progress.converting') || '変換中'}: ${i + 1} / ${selectedFiles.length}`;
 
-                    try {
-                        const pngBlob = await heic2any({
-                            blob: fileObj.file,
-                            toType: 'image/png',
-                            quality: 1
-                        });
+                    // 画像を読み込み
+                    const imgBytes = await fileObj.file.arrayBuffer();
+                    let embeddedImg;
 
-                        const url = URL.createObjectURL(pngBlob);
-                        const newName = fileObj.name.replace(/\.heic$/i, '.png');
-                        results.push({ name: newName, url, blob: pngBlob });
-                    } catch (err) {
-                        console.error('Conversion error:', err);
-                        results.push({ name: fileObj.name, error: true });
+                    if (fileObj.file.type === 'image/png') {
+                        embeddedImg = await pdfDoc.embedPng(imgBytes);
+                    } else {
+                        embeddedImg = await pdfDoc.embedJpg(imgBytes);
                     }
+
+                    const imgWidth = embeddedImg.width;
+                    const imgHeight = embeddedImg.height;
+                    const isImagePortrait = imgHeight > imgWidth;
+
+                    // ページサイズ決定
+                    let pageWidth, pageHeight;
+                    if (pageSizeOption === 'fit') {
+                        pageWidth = imgWidth + margin * 2;
+                        pageHeight = imgHeight + margin * 2;
+                    } else {
+                        const paperSize = PAPER_SIZES[pageSizeOption];
+                        let isPagePortrait;
+
+                        if (orientationOption === 'auto') {
+                            isPagePortrait = isImagePortrait;
+                        } else {
+                            isPagePortrait = orientationOption === 'portrait';
+                        }
+
+                        if (isPagePortrait) {
+                            pageWidth = paperSize.width * MM_TO_PT;
+                            pageHeight = paperSize.height * MM_TO_PT;
+                        } else {
+                            pageWidth = paperSize.height * MM_TO_PT;
+                            pageHeight = paperSize.width * MM_TO_PT;
+                        }
+                    }
+
+                    const page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+                    // 描画サイズ計算
+                    const availableWidth = pageWidth - margin * 2;
+                    const availableHeight = pageHeight - margin * 2;
+
+                    let drawWidth, drawHeight;
+                    if (alignmentOption === 'fit') {
+                        const scale = Math.min(availableWidth / imgWidth, availableHeight / imgHeight);
+                        drawWidth = imgWidth * scale;
+                        drawHeight = imgHeight * scale;
+                    } else {
+                        // 中央配置（原寸または縮小）
+                        if (imgWidth <= availableWidth && imgHeight <= availableHeight) {
+                            drawWidth = imgWidth;
+                            drawHeight = imgHeight;
+                        } else {
+                            const scale = Math.min(availableWidth / imgWidth, availableHeight / imgHeight);
+                            drawWidth = imgWidth * scale;
+                            drawHeight = imgHeight * scale;
+                        }
+                    }
+
+                    const x = margin + (availableWidth - drawWidth) / 2;
+                    const y = margin + (availableHeight - drawHeight) / 2;
+
+                    page.drawImage(embeddedImg, { x, y, width: drawWidth, height: drawHeight });
 
                     progressBar.style.width = `${((i + 1) / selectedFiles.length) * 100}%`;
                 }
 
-                progressDetails.textContent = `${t('heic.progress.done') || '完了'}: ${results.filter(r => !r.error).length}/${selectedFiles.length}`;
+                progressDetails.textContent = t('img2pdf.progress.generating') || 'PDF生成中...';
+                const pdfBytes = await pdfDoc.save();
 
-                // 結果を表示
-                displayResults(results);
+                // ダウンロード
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'images.pdf';
+                link.click();
+                URL.revokeObjectURL(url);
+
+                progressDetails.textContent = `${t('img2pdf.progress.done') || '完了'}: ${selectedFiles.length}${t('common.files.pages') || 'ページ'}`;
 
             } catch (error) {
+                console.error('Conversion error:', error);
                 showError(error.message);
             }
 
             convertBtn.disabled = false;
-        }
-
-        function displayResults(results) {
-            resultsSection.classList.remove('hidden');
-
-            results.forEach(result => {
-                const div = document.createElement('div');
-                div.className = 'bg-white dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden';
-
-                if (result.error) {
-                    div.innerHTML = `
-                        <div class="aspect-square bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-                            <svg class="w-12 h-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div class="p-3">
-                            <p class="text-xs text-red-500 truncate">${result.name}</p>
-                            <p class="text-xs text-red-400">${t('heic.error.failed') || '変換失敗'}</p>
-                        </div>
-                    `;
-                } else {
-                    div.innerHTML = `
-                        <div class="aspect-square bg-slate-100 dark:bg-slate-600 overflow-hidden">
-                            <img src="${result.url}" alt="${result.name}" class="w-full h-full object-cover">
-                        </div>
-                        <div class="p-3">
-                            <p class="text-xs text-slate-600 dark:text-slate-300 truncate mb-2">${result.name}</p>
-                            <a href="${result.url}" download="${result.name}"
-                                class="inline-flex items-center gap-1 text-xs font-bold text-fuchsia-600 dark:text-fuchsia-400 hover:text-fuchsia-700 dark:hover:text-fuchsia-300">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                                ${t('heic.btn.download') || 'ダウンロード'}
-                            </a>
-                        </div>
-                    `;
-                }
-
-                resultsGrid.appendChild(div);
-            });
         }
 
         // --- エラー表示 ---
