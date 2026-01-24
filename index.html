@@ -426,26 +426,63 @@
                         </div>
 
                         <div class="group">
-                            <label for="output-orientation"
-                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-                                data-i18n="settings.outputorientation">出力用紙の向き</label>
-                            <div class="relative">
-                                <select id="output-orientation"
-                                    class="appearance-none w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all cursor-pointer hover:border-blue-400">
-                                    <option value="auto" selected data-i18n="settings.orientation.auto">自動（元PDFに合わせる）
-                                    </option>
-                                    <option value="landscape" data-i18n="settings.orientation.landscape">横向き（ランドスケープ）
-                                    </option>
-                                    <option value="portrait" data-i18n="settings.orientation.portrait">縦向き（ポートレート）
-                                    </option>
-                                </select>
-                                <div
-                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M19 9l-7 7-7-7"></path>
-                                    </svg>
-                                </div>
+                            <label
+                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                data-i18n="settings.papersize">出力用紙サイズ</label>
+
+                            <!-- サイズ選択 -->
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="paper-size" value="auto" checked class="peer sr-only">
+                                    <span
+                                        class="inline-flex items-center px-4 py-2 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-900/30 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 transition-all hover:border-blue-300"
+                                        data-i18n="settings.papersize.auto.short">自動</span>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="paper-size" value="a3" class="peer sr-only">
+                                    <span
+                                        class="inline-flex items-center px-4 py-2 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-900/30 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 transition-all hover:border-blue-300">A3</span>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="paper-size" value="a4" class="peer sr-only">
+                                    <span
+                                        class="inline-flex items-center px-4 py-2 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-900/30 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 transition-all hover:border-blue-300">A4</span>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="paper-size" value="b4" class="peer sr-only">
+                                    <span
+                                        class="inline-flex items-center px-4 py-2 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-900/30 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 transition-all hover:border-blue-300">B4</span>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="paper-size" value="b5" class="peer sr-only">
+                                    <span
+                                        class="inline-flex items-center px-4 py-2 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-900/30 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 transition-all hover:border-blue-300">B5</span>
+                                </label>
+                            </div>
+
+                            <!-- 向き選択（自動以外の場合に表示） -->
+                            <div id="orientation-selector" class="flex gap-3 hidden">
+                                <label class="cursor-pointer flex-1">
+                                    <input type="radio" name="paper-orientation" value="landscape" checked
+                                        class="peer sr-only">
+                                    <span
+                                        class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-900/30 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 transition-all hover:border-blue-300">
+                                        <svg class="w-6 h-4 fill-current" viewBox="0 0 24 16">
+                                            <rect x="0" y="0" width="24" height="16" rx="2" />
+                                        </svg>
+                                        <span data-i18n="settings.orientation.landscape">横長</span>
+                                    </span>
+                                </label>
+                                <label class="cursor-pointer flex-1">
+                                    <input type="radio" name="paper-orientation" value="portrait" class="peer sr-only">
+                                    <span
+                                        class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium peer-checked:border-blue-500 peer-checked:bg-blue-50 dark:peer-checked:bg-blue-900/30 peer-checked:text-blue-600 dark:peer-checked:text-blue-400 transition-all hover:border-blue-300">
+                                        <svg class="w-4 h-6 fill-current" viewBox="0 0 16 24">
+                                            <rect x="0" y="0" width="16" height="24" rx="2" />
+                                        </svg>
+                                        <span data-i18n="settings.orientation.portrait">縦長</span>
+                                    </span>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -703,6 +740,30 @@
             failedFilesSection.classList.add('hidden');
             startBatchProcess();
         });
+
+        // --- 用紙サイズ選択のラジオボタン制御 ---
+        const orientationSelector = document.getElementById('orientation-selector');
+        const paperSizeRadios = document.querySelectorAll('input[name="paper-size"]');
+
+        paperSizeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'auto') {
+                    orientationSelector.classList.add('hidden');
+                } else {
+                    orientationSelector.classList.remove('hidden');
+                }
+            });
+        });
+
+        // ヘルパー関数: 選択された用紙サイズ値を取得
+        function getSelectedPaperSize() {
+            const sizeRadio = document.querySelector('input[name="paper-size"]:checked');
+            if (!sizeRadio || sizeRadio.value === 'auto') {
+                return 'auto';
+            }
+            const orientationRadio = document.querySelector('input[name="paper-orientation"]:checked');
+            return `${sizeRadio.value}-${orientationRadio.value}`;
+        }
 
         // --- 関数定義 ---
 
@@ -1031,19 +1092,39 @@
 
             if (pagesToRender.length === 0) return;
 
-            // 出力用紙の向き設定を適用
-            const outputOrientation = document.getElementById('output-orientation').value;
-            if (outputOrientation === 'landscape' && cellHeight > cellWidth) {
-                // 横向き指定だが元が縦向き → 幅と高さを入れ替え
-                [cellWidth, cellHeight] = [cellHeight, cellWidth];
-            } else if (outputOrientation === 'portrait' && cellWidth > cellHeight) {
-                // 縦向き指定だが元が横向き → 幅と高さを入れ替え
-                [cellWidth, cellHeight] = [cellHeight, cellWidth];
-            }
+            // 用紙サイズ定義 (mm)
+            const PAPER_SIZES = {
+                'a3': { width: 297, height: 420 },
+                'a4': { width: 210, height: 297 },
+                'b4': { width: 257, height: 364 },
+                'b5': { width: 182, height: 257 }
+            };
 
-            // キャンバスサイズの計算
-            const newPageWidth = (cellWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
-            const newPageHeight = (cellHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
+            // 出力用紙サイズの決定
+            const paperSizeValue = getSelectedPaperSize();
+            let newPageWidth, newPageHeight;
+
+            if (paperSizeValue === 'auto') {
+                // 自動モード: 元PDFサイズ × グリッド数
+                newPageWidth = (cellWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
+                newPageHeight = (cellHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
+            } else {
+                // 指定サイズモード
+                const [size, orientation] = paperSizeValue.split('-');
+                const paperSize = PAPER_SIZES[size];
+
+                if (orientation === 'landscape') {
+                    newPageWidth = paperSize.height * MM_TO_PT;
+                    newPageHeight = paperSize.width * MM_TO_PT;
+                } else {
+                    newPageWidth = paperSize.width * MM_TO_PT;
+                    newPageHeight = paperSize.height * MM_TO_PT;
+                }
+
+                // セルサイズを逆算
+                cellWidth = (newPageWidth - margin * 2 - gutter * (cols - 1)) / cols;
+                cellHeight = (newPageHeight - margin * 2 - gutter * (rows - 1)) / rows;
+            }
 
             canvas.width = newPageWidth;
             canvas.height = newPageHeight;
@@ -1218,24 +1299,45 @@
             const newPdf = await PDFDocument.create();
             const embeddedPages = await newPdf.embedPages(srcPdf.getPages());
 
-            // 最初のページの表示サイズをグリッドセルのサイズとして使用
+            // 最初のページの表示サイズを取得
             // (自動回転と手動回転が適用された後のサイズ)
             const firstPageVisualSize = getVisualSize(pages[0]);
-            let cellWidth = firstPageVisualSize.width;
-            let cellHeight = firstPageVisualSize.height;
 
-            // 出力用紙の向き設定を適用
-            const outputOrientation = document.getElementById('output-orientation').value;
-            if (outputOrientation === 'landscape' && cellHeight > cellWidth) {
-                // 横向き指定だが元が縦向き → 幅と高さを入れ替え
-                [cellWidth, cellHeight] = [cellHeight, cellWidth];
-            } else if (outputOrientation === 'portrait' && cellWidth > cellHeight) {
-                // 縦向き指定だが元が横向き → 幅と高さを入れ替え
-                [cellWidth, cellHeight] = [cellHeight, cellWidth];
+            // 用紙サイズ定義 (mm)
+            const PAPER_SIZES = {
+                'a3': { width: 297, height: 420 },
+                'a4': { width: 210, height: 297 },
+                'b4': { width: 257, height: 364 },
+                'b5': { width: 182, height: 257 }
+            };
+
+            // 出力用紙サイズの決定
+            const paperSizeValue = getSelectedPaperSize();
+            let newPageWidth, newPageHeight, cellWidth, cellHeight;
+
+            if (paperSizeValue === 'auto') {
+                // 自動モード: 元PDFサイズ × グリッド数（従来の動作）
+                cellWidth = firstPageVisualSize.width;
+                cellHeight = firstPageVisualSize.height;
+                newPageWidth = (cellWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
+                newPageHeight = (cellHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
+            } else {
+                // 指定サイズモード: 用紙サイズからセルサイズを逆算
+                const [size, orientation] = paperSizeValue.split('-');
+                const paperSize = PAPER_SIZES[size];
+
+                if (orientation === 'landscape') {
+                    newPageWidth = paperSize.height * MM_TO_PT;
+                    newPageHeight = paperSize.width * MM_TO_PT;
+                } else {
+                    newPageWidth = paperSize.width * MM_TO_PT;
+                    newPageHeight = paperSize.height * MM_TO_PT;
+                }
+
+                // セルサイズを逆算（出力サイズから余白・溝を引いてグリッドで割る）
+                cellWidth = (newPageWidth - margin * 2 - gutter * (cols - 1)) / cols;
+                cellHeight = (newPageHeight - margin * 2 - gutter * (rows - 1)) / rows;
             }
-
-            const newPageWidth = (cellWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
-            const newPageHeight = (cellHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
 
             for (let i = 0; i < pageCount; i++) {
                 const pageIndexInSheet = i % (cols * rows);
