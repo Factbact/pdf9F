@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEIC to PNG 変換ツール</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+    <script src="translations.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '"Outfit"', 'sans-serif'],
+                        heading: ['"Outfit"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#fdf4ff',
+                            100: '#fae8ff',
+                            200: '#f5d0fe',
+                            300: '#f0abfc',
+                            400: '#e879f9',
+                            500: '#d946ef',
+                            600: '#c026d3',
+                            700: '#a21caf',
+                            800: '#86198f',
+                            900: '#701a75',
+                        },
+                        dark: {
+                            bg: '#0f172a',
+                            surface: '#1e293b',
+                            border: '#334155'
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #d946ef, #a21caf);
+        }
+
+        .dark .text-gradient {
+            background-image: linear-gradient(to right, #e879f9, #d946ef);
+        }
+
+        .file-drop-area {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23CBD5E1FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+
+        .dark .file-drop-area {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23475569FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+
+        .file-drop-area.dragging {
+            background-color: rgba(217, 70, 239, 0.1);
+            transform: scale(1.01);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23D946EFFF' stroke-width='3' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-slate-50 dark:bg-dark-bg text-slate-800 dark:text-slate-200 font-sans antialiased transition-colors duration-300 min-h-screen selection:bg-fuchsia-500 selection:text-white">
+
+    <!-- 背景装飾 -->
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div
+            class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-fuchsia-400/20 blur-[100px] dark:bg-fuchsia-900/20">
+        </div>
+        <div
+            class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-purple-400/20 blur-[100px] dark:bg-purple-900/20">
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <!-- ヘッダー -->
+        <header class="flex flex-col gap-4 mb-10 py-4 animate-fade-in">
+            <!-- ナビゲーション -->
+            <nav class="flex justify-center gap-2">
+                <a href="index.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.nup">面付け</a>
+                <a href="merge.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.merge">結合</a>
+                <a href="heic.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-lg shadow-fuchsia-500/20"
+                    data-i18n="nav.heic">HEIC変換</a>
+            </nav>
+            <!-- タイトルとダークモード -->
+            <div class="flex justify-between items-center">
+                <div class="text-left">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center shadow-lg shadow-fuchsia-500/30 text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                                stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight"
+                                data-i18n="heic.title">
+                                HEIC to <span class="text-gradient">PNG</span></h1>
+                            <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400"
+                                data-i18n="heic.subtitle">Image Converter</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- ダークモードトグルと言語切り替え -->
+                <div
+                    class="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <button id="lang-toggle-btn"
+                        class="p-3 rounded-full text-lg hover:bg-fuchsia-50 dark:hover:bg-slate-700 transition-all"
+                        aria-label="言語切り替え" onclick="toggleLanguage()">
+                        🇺🇸
+                    </button>
+                    <button id="theme-toggle-btn"
+                        class="p-3 rounded-full text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-slate-700 transition-all"
+                        aria-label="テーマ切り替え">
+                        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden"
+                            viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="glass-card rounded-3xl p-6 md:p-10 space-y-12 animate-slide-up">
+
+            <!-- 1. ファイルを追加 -->
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-fuchsia-500/20">1</span>
+                    <span data-i18n="heic.step1.title">HEICファイルを追加</span>
+                </h2>
+                <div id="drop-area"
+                    class="file-drop-area border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-10 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 group relative overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-fuchsia-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    </div>
+                    <div class="relative z-10 flex flex-col items-center justify-center">
+                        <div
+                            class="w-20 h-20 mb-6 rounded-full bg-fuchsia-50 dark:bg-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-10 h-10 text-fuchsia-500 dark:text-fuchsia-400"
+                                xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
+                        </div>
+                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2"
+                            data-i18n="heic.drop.title">
+                            HEICファイルをここにドラッグ＆ドロップ</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6" data-i18n="heic.drop.subtitle">
+                            または、ボタンから選択してください</p>
+
+                        <button id="select-file-btn"
+                            class="flex items-center justify-center gap-2 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-fuchsia-500/20 hover:shadow-fuchsia-500/40 transform hover:-translate-y-0.5 transition-all duration-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span data-i18n="common.btn.addfile">ファイルを追加</span>
+                        </button>
+                        <input type="file" id="file-input" class="hidden" accept=".heic,.HEIC" multiple>
+                    </div>
+                </div>
+
+                <div id="file-info"
+                    class="mt-4 text-center text-slate-600 dark:text-slate-400 font-medium h-6 transition-all duration-300">
+                </div>
+
+                <!-- ファイルリスト -->
+                <div id="file-list-header" class="mt-6 hidden flex justify-between items-center px-2 mb-2">
+                    <span class="text-sm font-medium text-slate-600 dark:text-slate-400" data-i18n="heic.filecount">
+                        選択中のファイル
+                    </span>
+                    <button id="clear-all-btn"
+                        class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium flex items-center gap-1 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <span data-i18n="common.btn.clearall">すべてクリア</span>
+                    </button>
+                </div>
+                <ul id="file-list-container" class="mt-2 space-y-2 max-h-80 overflow-y-auto px-2"></ul>
+            </section>
+
+            <!-- 2. 変換 -->
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-fuchsia-500/20">2</span>
+                    <span data-i18n="heic.step2.title">変換</span>
+                </h2>
+                <button id="convert-btn" disabled
+                    class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-fuchsia-500/30 hover:shadow-fuchsia-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 relative z-10" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="relative z-10 text-lg" data-i18n="heic.btn.convert">PNGに変換</span>
+                </button>
+            </section>
+
+            <!-- 進捗 -->
+            <section id="progress-section" class="hidden animate-fade-in">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-fuchsia-500/20">3</span>
+                    <span data-i18n="heic.step3.title">進捗状況</span>
+                </h2>
+                <div id="progress-details"
+                    class="text-sm text-center text-slate-600 dark:text-slate-400 mb-4 font-medium"></div>
+                <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 overflow-hidden">
+                    <div id="progress-bar"
+                        class="bg-gradient-to-r from-fuchsia-500 to-purple-600 h-full rounded-full transition-all duration-300"
+                        style="width: 0%">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 結果 -->
+            <section id="results-section" class="hidden animate-fade-in">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-fuchsia-500/20">✓</span>
+                    <span data-i18n="heic.results.title">変換結果</span>
+                </h2>
+                <div id="results-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+            </section>
+
+            <!-- エラー表示 -->
+            <div id="error-box"
+                class="hidden mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl flex items-start gap-3 animate-fade-in">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p id="error-message" class="font-medium"></p>
+            </div>
+        </main>
+
+        <footer class="text-center mt-12 text-sm text-slate-500 dark:text-slate-400 font-medium">
+            <p>&copy; 2024 PDF Tools. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM要素
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const selectFileBtn = document.getElementById('select-file-btn');
+        const fileInfo = document.getElementById('file-info');
+        const fileListHeader = document.getElementById('file-list-header');
+        const fileListContainer = document.getElementById('file-list-container');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        const convertBtn = document.getElementById('convert-btn');
+        const progressSection = document.getElementById('progress-section');
+        const progressBar = document.getElementById('progress-bar');
+        const progressDetails = document.getElementById('progress-details');
+        const resultsSection = document.getElementById('results-section');
+        const resultsGrid = document.getElementById('results-grid');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const themeIconSun = document.getElementById('theme-icon-sun');
+        const themeIconMoon = document.getElementById('theme-icon-moon');
+
+        let selectedFiles = [];
+
+        // --- 初期化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
+                setTheme('dark');
+            } else {
+                setTheme('light');
+            }
+            initLanguage();
+        });
+
+        // --- テーマ ---
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                themeIconSun.classList.remove('hidden');
+                themeIconMoon.classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                themeIconSun.classList.add('hidden');
+                themeIconMoon.classList.remove('hidden');
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+
+        // --- イベントリスナー ---
+        selectFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            handleFileSelection(e.target.files);
+            fileInput.value = '';
+        });
+        clearAllBtn.addEventListener('click', clearAllFiles);
+        convertBtn.addEventListener('click', convertFiles);
+
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.add('dragging');
+        });
+        dropArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.remove('dragging');
+        });
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.remove('dragging');
+            handleFileSelection(e.dataTransfer.files);
+        });
+
+        // --- ファイル操作 ---
+        function handleFileSelection(fileList) {
+            const heicFiles = Array.from(fileList).filter(f =>
+                f.name.toLowerCase().endsWith('.heic') || f.type === 'image/heic'
+            );
+            if (heicFiles.length === 0) {
+                if (selectedFiles.length === 0) showError(t('heic.error.noheic') || 'HEICファイルを選択してください');
+                return;
+            }
+            const newFiles = heicFiles.map(f => ({
+                file: f,
+                name: f.name,
+                id: crypto.randomUUID()
+            }));
+            selectedFiles = [...selectedFiles, ...newFiles];
+            renderFileList();
+        }
+
+        function removeFile(id) {
+            selectedFiles = selectedFiles.filter(f => f.id !== id);
+            renderFileList();
+        }
+
+        function clearAllFiles() {
+            selectedFiles = [];
+            renderFileList();
+            resultsSection.classList.add('hidden');
+            resultsGrid.innerHTML = '';
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function renderFileList() {
+            const totalSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
+
+            if (selectedFiles.length === 0) {
+                fileInfo.textContent = '';
+                fileListHeader.classList.add('hidden');
+            } else if (selectedFiles.length === 1) {
+                fileInfo.textContent = `${t('common.selected') || '選択中'}: ${selectedFiles[0].name} (${formatBytes(totalSize)})`;
+                fileListHeader.classList.remove('hidden');
+                fileListHeader.classList.add('flex');
+            } else {
+                fileInfo.textContent = `${selectedFiles.length}${t('common.files.selected') || 'ファイル選択中'} (${formatBytes(totalSize)})`;
+                fileListHeader.classList.remove('hidden');
+                fileListHeader.classList.add('flex');
+            }
+
+            fileListContainer.innerHTML = '';
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const fileObj = selectedFiles[i];
+                const li = document.createElement('li');
+                li.className = 'bg-white dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between text-sm animate-fade-in';
+
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'flex items-center gap-3 overflow-hidden';
+
+                const orderBadge = document.createElement('span');
+                orderBadge.className = 'flex-shrink-0 w-6 h-6 rounded-full bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-700 dark:text-fuchsia-300 text-xs font-bold flex items-center justify-center';
+                orderBadge.textContent = i + 1;
+
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center flex-shrink-0';
+                iconDiv.innerHTML = `<svg class="w-5 h-5 text-fuchsia-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                </svg>`;
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'truncate';
+                nameDiv.innerHTML = `<div class="font-medium text-slate-700 dark:text-slate-200 truncate">${fileObj.name}</div><div class="text-xs text-slate-500 dark:text-slate-400">${formatBytes(fileObj.file.size)}</div>`;
+
+                leftDiv.appendChild(orderBadge);
+                leftDiv.appendChild(iconDiv);
+                leftDiv.appendChild(nameDiv);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-slate-600 transition-colors flex-shrink-0';
+                removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    removeFile(fileObj.id);
+                };
+
+                li.appendChild(leftDiv);
+                li.appendChild(removeBtn);
+                fileListContainer.appendChild(li);
+            }
+
+            convertBtn.disabled = selectedFiles.length === 0;
+            hideError();
+        }
+
+        // --- 変換 ---
+        async function convertFiles() {
+            if (selectedFiles.length === 0) return;
+
+            progressSection.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            progressDetails.textContent = t('heic.progress.converting') || '変換中...';
+            convertBtn.disabled = true;
+            resultsSection.classList.add('hidden');
+            resultsGrid.innerHTML = '';
+            hideError();
+
+            const results = [];
+
+            try {
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const fileObj = selectedFiles[i];
+                    progressDetails.textContent = `${t('heic.progress.converting') || '変換中'}: ${i + 1} / ${selectedFiles.length} - ${fileObj.name}`;
+
+                    try {
+                        const pngBlob = await heic2any({
+                            blob: fileObj.file,
+                            toType: 'image/png',
+                            quality: 1
+                        });
+
+                        const url = URL.createObjectURL(pngBlob);
+                        const newName = fileObj.name.replace(/\.heic$/i, '.png');
+                        results.push({ name: newName, url, blob: pngBlob });
+                    } catch (err) {
+                        console.error('Conversion error:', err);
+                        results.push({ name: fileObj.name, error: true });
+                    }
+
+                    progressBar.style.width = `${((i + 1) / selectedFiles.length) * 100}%`;
+                }
+
+                progressDetails.textContent = `${t('heic.progress.done') || '完了'}: ${results.filter(r => !r.error).length}/${selectedFiles.length}`;
+
+                // 結果を表示
+                displayResults(results);
+
+            } catch (error) {
+                showError(error.message);
+            }
+
+            convertBtn.disabled = false;
+        }
+
+        function displayResults(results) {
+            resultsSection.classList.remove('hidden');
+
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = 'bg-white dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden';
+
+                if (result.error) {
+                    div.innerHTML = `
+                        <div class="aspect-square bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                            <svg class="w-12 h-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="p-3">
+                            <p class="text-xs text-red-500 truncate">${result.name}</p>
+                            <p class="text-xs text-red-400">${t('heic.error.failed') || '変換失敗'}</p>
+                        </div>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <div class="aspect-square bg-slate-100 dark:bg-slate-600 overflow-hidden">
+                            <img src="${result.url}" alt="${result.name}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-3">
+                            <p class="text-xs text-slate-600 dark:text-slate-300 truncate mb-2">${result.name}</p>
+                            <a href="${result.url}" download="${result.name}"
+                                class="inline-flex items-center gap-1 text-xs font-bold text-fuchsia-600 dark:text-fuchsia-400 hover:text-fuchsia-700 dark:hover:text-fuchsia-300">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                ${t('heic.btn.download') || 'ダウンロード'}
+                            </a>
+                        </div>
+                    `;
+                }
+
+                resultsGrid.appendChild(div);
+            });
+        }
+
+        // --- エラー表示 ---
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorBox.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorBox.classList.add('hidden');
+        }
+    </script>
+</body>
+
+</html>

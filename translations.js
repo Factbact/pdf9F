@@ -4,6 +4,7 @@ const translations = {
         // ナビゲーション
         'nav.nup': '面付け',
         'nav.merge': '結合',
+        'nav.heic': 'HEIC変換',
 
         // 面付けツール
         'nup.title': 'PDF<span class="text-gradient">面付け</span>ツール',
@@ -112,11 +113,29 @@ const translations = {
         // 失敗ファイル
         'failed.title': '処理に失敗したファイル',
         'failed.reprocess': '失敗したファイルのみ再処理',
+
+        // HEICツール
+        'heic.title': 'HEIC to <span class="text-gradient">PNG</span>',
+        'heic.subtitle': 'Image Converter',
+        'heic.step1.title': 'HEICファイルを追加',
+        'heic.step2.title': '変換',
+        'heic.step3.title': '進捗状況',
+        'heic.drop.title': 'HEICファイルをここにドラッグ＆ドロップ',
+        'heic.drop.subtitle': 'または、ボタンから選択してください',
+        'heic.filecount': '選択中のファイル',
+        'heic.btn.convert': 'PNGに変換',
+        'heic.btn.download': 'ダウンロード',
+        'heic.results.title': '変換結果',
+        'heic.progress.converting': '変換中',
+        'heic.progress.done': '完了',
+        'heic.error.noheic': 'HEICファイルを選択してください',
+        'heic.error.failed': '変換失敗',
     },
     en: {
         // Navigation
         'nav.nup': 'N-up',
         'nav.merge': 'Merge',
+        'nav.heic': 'HEIC',
 
         // N-up Tool
         'nup.title': 'PDF <span class="text-gradient">N-up</span> Tool',
@@ -225,6 +244,23 @@ const translations = {
         // Failed files
         'failed.title': 'Failed Files',
         'failed.reprocess': 'Reprocess Failed Files',
+
+        // HEIC Tool
+        'heic.title': 'HEIC to <span class="text-gradient">PNG</span>',
+        'heic.subtitle': 'Image Converter',
+        'heic.step1.title': 'Add HEIC Files',
+        'heic.step2.title': 'Convert',
+        'heic.step3.title': 'Progress',
+        'heic.drop.title': 'Drag & Drop HEIC files here',
+        'heic.drop.subtitle': 'Or click the button to select',
+        'heic.filecount': 'Selected files',
+        'heic.btn.convert': 'Convert to PNG',
+        'heic.btn.download': 'Download',
+        'heic.results.title': 'Results',
+        'heic.progress.converting': 'Converting',
+        'heic.progress.done': 'Done',
+        'heic.error.noheic': 'Please select HEIC files',
+        'heic.error.failed': 'Conversion failed',
     }
 };
 
