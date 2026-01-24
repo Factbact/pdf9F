@@ -424,6 +424,30 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="group">
+                            <label for="output-orientation"
+                                class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                data-i18n="settings.outputorientation">出力用紙の向き</label>
+                            <div class="relative">
+                                <select id="output-orientation"
+                                    class="appearance-none w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-3 px-4 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all cursor-pointer hover:border-blue-400">
+                                    <option value="auto" selected data-i18n="settings.orientation.auto">自動（元PDFに合わせる）
+                                    </option>
+                                    <option value="landscape" data-i18n="settings.orientation.landscape">横向き（ランドスケープ）
+                                    </option>
+                                    <option value="portrait" data-i18n="settings.orientation.portrait">縦向き（ポートレート）
+                                    </option>
+                                </select>
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -1007,6 +1031,16 @@
 
             if (pagesToRender.length === 0) return;
 
+            // 出力用紙の向き設定を適用
+            const outputOrientation = document.getElementById('output-orientation').value;
+            if (outputOrientation === 'landscape' && cellHeight > cellWidth) {
+                // 横向き指定だが元が縦向き → 幅と高さを入れ替え
+                [cellWidth, cellHeight] = [cellHeight, cellWidth];
+            } else if (outputOrientation === 'portrait' && cellWidth > cellHeight) {
+                // 縦向き指定だが元が横向き → 幅と高さを入れ替え
+                [cellWidth, cellHeight] = [cellHeight, cellWidth];
+            }
+
             // キャンバスサイズの計算
             const newPageWidth = (cellWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
             const newPageHeight = (cellHeight * rows) + (gutter * (rows - 1)) + (margin * 2);
@@ -1187,8 +1221,18 @@
             // 最初のページの表示サイズをグリッドセルのサイズとして使用
             // (自動回転と手動回転が適用された後のサイズ)
             const firstPageVisualSize = getVisualSize(pages[0]);
-            const cellWidth = firstPageVisualSize.width;
-            const cellHeight = firstPageVisualSize.height;
+            let cellWidth = firstPageVisualSize.width;
+            let cellHeight = firstPageVisualSize.height;
+
+            // 出力用紙の向き設定を適用
+            const outputOrientation = document.getElementById('output-orientation').value;
+            if (outputOrientation === 'landscape' && cellHeight > cellWidth) {
+                // 横向き指定だが元が縦向き → 幅と高さを入れ替え
+                [cellWidth, cellHeight] = [cellHeight, cellWidth];
+            } else if (outputOrientation === 'portrait' && cellWidth > cellHeight) {
+                // 縦向き指定だが元が横向き → 幅と高さを入れ替え
+                [cellWidth, cellHeight] = [cellHeight, cellWidth];
+            }
 
             const newPageWidth = (cellWidth * cols) + (gutter * (cols - 1)) + (margin * 2);
             const newPageHeight = (cellHeight * rows) + (gutter * (rows - 1)) + (margin * 2);

@@ -59,6 +59,10 @@ const translations = {
         'settings.rotate90': '時計回りに90°回転',
         'settings.rotate180': '180°回転',
         'settings.rotate270': '時計回りに270°回転',
+        'settings.outputorientation': '出力用紙の向き',
+        'settings.orientation.auto': '自動（元PDFに合わせる）',
+        'settings.orientation.landscape': '横向き（ランドスケープ）',
+        'settings.orientation.portrait': '縦向き（ポートレート）',
 
         // ステータス
         'status.portrait': '縦向き',
@@ -159,6 +163,10 @@ const translations = {
         'settings.rotate90': 'Rotate 90° clockwise',
         'settings.rotate180': 'Rotate 180°',
         'settings.rotate270': 'Rotate 270° clockwise',
+        'settings.outputorientation': 'Output Orientation',
+        'settings.orientation.auto': 'Auto (Match Source PDF)',
+        'settings.orientation.landscape': 'Landscape',
+        'settings.orientation.portrait': 'Portrait',
 
         // Status
         'status.portrait': 'Portrait',
