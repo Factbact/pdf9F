@@ -1354,13 +1354,26 @@
                 // ページの埋め込み
                 const embeddedPage = embeddedPages[i];
                 const originalPage = pages[i];
-                const rotation = originalPage.getRotation().angle;
-                const isRotated = rotation % 180 === 90;
+                let rotation = originalPage.getRotation().angle;
+                let isRotated = rotation % 180 === 90;
 
-                // 表示サイズに基づいてスケールを計算
-                // 回転している場合、表示幅は高さ、表示高さは幅になる
-                const visualPageWidth = isRotated ? embeddedPage.height : embeddedPage.width;
-                const visualPageHeight = isRotated ? embeddedPage.width : embeddedPage.height;
+                // 表示サイズを計算
+                let visualPageWidth = isRotated ? embeddedPage.height : embeddedPage.width;
+                let visualPageHeight = isRotated ? embeddedPage.width : embeddedPage.height;
+
+                // 自動回転: セルとページの向きが異なる場合、90度回転させる
+                const autoRotate = document.getElementById('auto-rotate').checked;
+                if (autoRotate) {
+                    const isCellPortrait = cellHeight > cellWidth;
+                    const isPagePortrait = visualPageHeight > visualPageWidth;
+
+                    if (isCellPortrait !== isPagePortrait) {
+                        rotation = (rotation + 90) % 360;
+                        isRotated = rotation % 180 === 90;
+                        visualPageWidth = isRotated ? embeddedPage.height : embeddedPage.width;
+                        visualPageHeight = isRotated ? embeddedPage.width : embeddedPage.height;
+                    }
+                }
 
                 const scale = Math.min(cellWidth / visualPageWidth, cellHeight / visualPageHeight);
 
