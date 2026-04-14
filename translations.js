@@ -8,6 +8,7 @@ const translations = {
         'nav.compress': 'PDF圧縮',
         'nav.heic': 'HEIC変換',
         'nav.img2pdf': '画像→PDF',
+        'nav.outline': 'アウトライン整列',
 
         // 面付けツール
         'nup.title': 'PDF<span class="text-gradient">面付け</span>ツール',
@@ -228,6 +229,7 @@ const translations = {
         'nav.compress': 'Compress',
         'nav.heic': 'HEIC',
         'nav.img2pdf': 'Img to PDF',
+        'nav.outline': 'Outline',
 
         // N-up Tool
         'nup.title': 'PDF <span class="text-gradient">N-up</span> Tool',

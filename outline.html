@@ -114,7 +114,8 @@
                     class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                     data-i18n="nav.img2pdf">画像→PDF</a>
                 <a href="outline.html"
-                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20">アウトライン整列</a>
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20"
+                    data-i18n="nav.outline">アウトライン整列</a>
             </nav>
             <div class="flex justify-between items-center">
                 <div class="flex items-center gap-3">
@@ -206,6 +207,9 @@
                         class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-blue-500/20">2</span>
                     <span>アウトラインの確認</span>
                 </h2>
+                <p class="mb-4 text-sm text-slate-500 dark:text-slate-400">
+                    次の同階層見出しの直前までを同じセクションとして扱い、PDFのページ順も連動して並び替えます。
+                </p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- 現在の順序 -->
                     <div
@@ -253,7 +257,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M3 7h18M3 12h12M3 17h6" />
                     </svg>
-                    <span id="sort-btn-label" class="relative z-10 text-lg">アウトラインを並び替えてダウンロード</span>
+                    <span id="sort-btn-label" class="relative z-10 text-lg">アウトラインとページを並び替えてダウンロード</span>
                 </button>
             </section>
 
@@ -276,7 +280,17 @@
     </div>
 
     <script>
-        const { PDFDocument, PDFName, PDFString, PDFHexString, PDFNumber, PDFNull } = PDFLib;
+        const {
+            PDFDocument,
+            PDFName,
+            PDFString,
+            PDFHexString,
+            PDFNumber,
+            PDFNull,
+            PDFArray,
+            PDFDict,
+            PDFRef,
+        } = PDFLib;
 
         // DOM
         const dropArea        = document.getElementById('drop-area');
@@ -293,9 +307,10 @@
         const errorBox        = document.getElementById('error-box');
         const errorMessage    = document.getElementById('error-message');
 
-        let pdfBytes     = null;
-        let loadedItems  = null; // 読み込んだアウトラインツリー
-        let selectedFile = null;
+        let pdfBytes      = null;
+        let loadedItems   = null;
+        let loadedPreview = null;
+        let selectedFile  = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
@@ -318,6 +333,7 @@
                 showError('PDFファイルを選択してください。');
                 return;
             }
+
             hideError();
             outlineSection.classList.add('hidden');
             actionSection.classList.add('hidden');
@@ -327,12 +343,15 @@
             try {
                 pdfBytes = await file.arrayBuffer();
                 const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-                loadedItems = readOutline(pdfDoc);
+                const items = readOutline(pdfDoc);
 
-                if (!loadedItems || loadedItems.length === 0) {
+                if (!items || items.length === 0) {
                     showError('このPDFにはアウトライン（しおり）が含まれていません。');
                     return;
                 }
+
+                loadedPreview = buildOutlinePreview(pdfDoc, items);
+                loadedItems = loadedPreview.items;
 
                 renderComparison(loadedItems);
                 outlineSection.classList.remove('hidden');
@@ -364,14 +383,12 @@
                     try { dict = pdfDoc.context.lookup(currentRef); } catch { break; }
                     if (!dict) break;
 
-                    // タイトル取得（PDFString / PDFHexString どちらも decodeText() で読める）
                     const titleObj = dict.get(PDFName.of('Title'));
                     let title = '';
                     if (titleObj && typeof titleObj.decodeText === 'function') {
                         try { title = titleObj.decodeText(); } catch { title = ''; }
                     }
 
-                    // Count の符号でopen/closed状態を保持
                     const countObj = dict.get(PDFName.of('Count'));
                     const count = (countObj && typeof countObj.asNumber === 'function')
                         ? countObj.asNumber()
@@ -379,21 +396,296 @@
 
                     items.push({
                         title,
-                        titleObj,                             // 書き戻し用
-                        dest:   dict.get(PDFName.of('Dest')),   // PDFArray or PDFString (named dest)
-                        action: dict.get(PDFName.of('A')),      // PDFDict (GoTo等)
+                        titleObj,
+                        dest: dict.get(PDFName.of('Dest')),
+                        action: dict.get(PDFName.of('A')),
                         count,
-                        color:  dict.get(PDFName.of('C')),
-                        flags:  dict.get(PDFName.of('F')),
-                        children: readLevel(dict)
+                        color: dict.get(PDFName.of('C')),
+                        flags: dict.get(PDFName.of('F')),
+                        children: readLevel(dict),
+                        startPageIndex: null,
+                        sectionStart: null,
+                        sectionEnd: null,
+                        pageRangeLabel: null,
+                        reorderedPageRangeLabel: null,
+                        resolvedDest: null,
                     });
 
                     currentRef = dict.get(PDFName.of('Next'));
                 }
+
                 return items;
             }
 
             return readLevel(outlinesDict);
+        }
+
+        // ----------------------------------------------------------------
+        // プレビュー用の解析
+        // ----------------------------------------------------------------
+        function buildOutlinePreview(pdfDoc, items) {
+            const pages = pdfDoc.getPages();
+            const pageRefToIndex = new Map();
+            const pageNodeToIndex = new Map();
+
+            pages.forEach((page, index) => {
+                if (page.ref) pageRefToIndex.set(refKey(page.ref), index);
+                if (page.node) pageNodeToIndex.set(page.node, index);
+            });
+
+            annotateResolvedDestinations(items, pdfDoc, pageRefToIndex, pageNodeToIndex);
+            assignSectionRanges(items, 0, pages.length);
+
+            const pageOrder = finalizePageOrder(buildPageOrder(items, pages.length), pages.length);
+            const oldToNewPageIndex = new Map(pageOrder.map((oldIndex, newIndex) => [oldIndex, newIndex]));
+            annotateRangeLabels(items, oldToNewPageIndex);
+
+            return { items, pageOrder, pageCount: pages.length };
+        }
+
+        function annotateResolvedDestinations(items, pdfDoc, pageRefToIndex, pageNodeToIndex) {
+            items.forEach(item => {
+                annotateResolvedDestinations(item.children, pdfDoc, pageRefToIndex, pageNodeToIndex);
+
+                item.resolvedDest = resolveOutlineDestination(item, pdfDoc, pageRefToIndex, pageNodeToIndex);
+
+                const ownStart = item.resolvedDest?.pageIndex;
+                const childStarts = item.children
+                    .map(child => child.startPageIndex)
+                    .filter(Number.isInteger);
+
+                item.startPageIndex = Number.isInteger(ownStart)
+                    ? ownStart
+                    : (childStarts.length > 0 ? Math.min(...childStarts) : null);
+            });
+        }
+
+        function resolveOutlineDestination(item, pdfDoc, pageRefToIndex, pageNodeToIndex) {
+            const directDest = resolveDestinationObject(item.dest, pdfDoc, pageRefToIndex, pageNodeToIndex);
+            if (directDest) return directDest;
+
+            const actionDict = lookupAs(pdfDoc, item.action, PDFDict);
+            if (!actionDict) return null;
+
+            const actionType = pdfNameToString(dictLookupAs(pdfDoc, actionDict, 'S', PDFName));
+            if (actionType !== 'GoTo') return null;
+
+            return resolveDestinationObject(
+                actionDict.get(PDFName.of('D')),
+                pdfDoc,
+                pageRefToIndex,
+                pageNodeToIndex
+            );
+        }
+
+        function resolveDestinationObject(destObj, pdfDoc, pageRefToIndex, pageNodeToIndex) {
+            if (!destObj) return null;
+
+            const resolvedObj = resolveDestinationReference(destObj, pdfDoc);
+            const destArray = lookupAs(pdfDoc, resolvedObj, PDFArray);
+            if (!destArray) return null;
+
+            return parseExplicitDestination(destArray, pdfDoc, pageRefToIndex, pageNodeToIndex);
+        }
+
+        function resolveDestinationReference(destObj, pdfDoc) {
+            const directArray = lookupAs(pdfDoc, destObj, PDFArray);
+            if (directArray) return directArray;
+
+            const resolvedText = getPdfTextOrName(lookupObject(pdfDoc, destObj));
+            if (!resolvedText) return null;
+
+            return lookupNamedDestination(pdfDoc, resolvedText);
+        }
+
+        function lookupNamedDestination(pdfDoc, nameText) {
+            const directDests = dictLookupAs(pdfDoc, pdfDoc.catalog, 'Dests', PDFDict);
+            if (directDests) {
+                for (const [key, value] of directDests.entries()) {
+                    if (getPdfTextOrName(key) === nameText) {
+                        const resolved = extractNamedDestinationValue(pdfDoc, value);
+                        if (resolved) return resolved;
+                    }
+                }
+            }
+
+            const namesDict = dictLookupAs(pdfDoc, pdfDoc.catalog, 'Names', PDFDict);
+            const destsTree = namesDict ? dictLookupAs(pdfDoc, namesDict, 'Dests', PDFDict) : null;
+            return destsTree ? findNamedDestinationInTree(pdfDoc, destsTree, nameText) : null;
+        }
+
+        function findNamedDestinationInTree(pdfDoc, treeDict, nameText) {
+            const namesArray = dictLookupAs(pdfDoc, treeDict, 'Names', PDFArray);
+            if (namesArray) {
+                for (let i = 0, len = namesArray.size(); i < len; i += 2) {
+                    const keyObj = lookupObject(pdfDoc, namesArray.get(i));
+                    if (getPdfTextOrName(keyObj) === nameText) {
+                        return extractNamedDestinationValue(pdfDoc, namesArray.get(i + 1));
+                    }
+                }
+            }
+
+            const kids = dictLookupAs(pdfDoc, treeDict, 'Kids', PDFArray);
+            if (!kids) return null;
+
+            for (let i = 0, len = kids.size(); i < len; i++) {
+                const kid = arrayLookupAs(pdfDoc, kids, i, PDFDict);
+                if (!kid) continue;
+
+                const found = findNamedDestinationInTree(pdfDoc, kid, nameText);
+                if (found) return found;
+            }
+
+            return null;
+        }
+
+        function extractNamedDestinationValue(pdfDoc, valueObj) {
+            const directArray = lookupAs(pdfDoc, valueObj, PDFArray);
+            if (directArray) return directArray;
+
+            const destDict = lookupAs(pdfDoc, valueObj, PDFDict);
+            if (!destDict) return null;
+
+            return lookupAs(pdfDoc, destDict.get(PDFName.of('D')), PDFArray);
+        }
+
+        function parseExplicitDestination(destArray, pdfDoc, pageRefToIndex, pageNodeToIndex) {
+            const pageIndex = resolveDestinationPageIndex(destArray, pdfDoc, pageRefToIndex, pageNodeToIndex);
+            if (!Number.isInteger(pageIndex)) return null;
+
+            const mode = pdfNameToString(arrayLookupAs(pdfDoc, destArray, 1, PDFName)) || 'Fit';
+            const params = [];
+            for (let i = 2, len = destArray.size(); i < len; i++) {
+                params.push(parseDestinationParam(lookupObject(pdfDoc, destArray.get(i))));
+            }
+
+            return { pageIndex, mode, params };
+        }
+
+        function resolveDestinationPageIndex(destArray, pdfDoc, pageRefToIndex, pageNodeToIndex) {
+            const pageRef = arrayLookupAs(pdfDoc, destArray, 0, PDFRef);
+            if (pageRef && pageRefToIndex.has(refKey(pageRef))) {
+                return pageRefToIndex.get(refKey(pageRef));
+            }
+
+            const pageDict = arrayLookupAs(pdfDoc, destArray, 0, PDFDict);
+            if (pageDict && pageNodeToIndex.has(pageDict)) {
+                return pageNodeToIndex.get(pageDict);
+            }
+
+            const rawPageObj = lookupObject(pdfDoc, destArray.get(0));
+            if (rawPageObj instanceof PDFRef && pageRefToIndex.has(refKey(rawPageObj))) {
+                return pageRefToIndex.get(refKey(rawPageObj));
+            }
+
+            return pageNodeToIndex.get(rawPageObj) ?? null;
+        }
+
+        function assignSectionRanges(items, containerStart, containerEnd) {
+            items.forEach(item => {
+                item.sectionStart = null;
+                item.sectionEnd = null;
+            });
+
+            const docOrdered = items
+                .map((item, index) => ({ item, index, start: item.startPageIndex }))
+                .filter(({ start }) => Number.isInteger(start) && start >= containerStart && start < containerEnd)
+                .sort((a, b) => a.start - b.start || a.index - b.index);
+
+            const groups = [];
+            docOrdered.forEach(entry => {
+                const lastGroup = groups[groups.length - 1];
+                if (lastGroup && lastGroup.start === entry.start) {
+                    lastGroup.entries.push(entry);
+                } else {
+                    groups.push({ start: entry.start, entries: [entry] });
+                }
+            });
+
+            groups.forEach((group, groupIndex) => {
+                const groupEnd = groupIndex < groups.length - 1
+                    ? groups[groupIndex + 1].start
+                    : containerEnd;
+
+                group.entries.forEach((entry, entryIndex) => {
+                    entry.item.sectionStart = group.start;
+                    entry.item.sectionEnd = entryIndex === 0 ? groupEnd : group.start;
+                });
+            });
+
+            items.forEach(item => {
+                if (item.children.length === 0) return;
+                if (!Number.isInteger(item.sectionStart) || !Number.isInteger(item.sectionEnd)) return;
+                assignSectionRanges(item.children, item.sectionStart, item.sectionEnd);
+            });
+        }
+
+        function buildPageOrder(items, pageCount) {
+            const firstSectionStart = items
+                .map(item => item.sectionStart)
+                .filter(Number.isInteger)
+                .reduce((min, start) => Math.min(min, start), pageCount);
+
+            const order = range(firstSectionStart > 0 ? 0 : 0, firstSectionStart);
+            naturalSort(items).forEach(item => {
+                order.push(...buildPageOrderForItem(item));
+            });
+
+            return order;
+        }
+
+        function buildPageOrderForItem(item) {
+            if (!Number.isInteger(item.sectionStart) || !Number.isInteger(item.sectionEnd)) return [];
+            if (item.sectionEnd <= item.sectionStart) return [];
+
+            const childSections = item.children.filter(child =>
+                Number.isInteger(child.sectionStart) &&
+                Number.isInteger(child.sectionEnd) &&
+                child.sectionStart >= item.sectionStart &&
+                child.sectionStart < item.sectionEnd &&
+                child.sectionEnd > child.sectionStart
+            );
+
+            if (childSections.length === 0) {
+                return range(item.sectionStart, item.sectionEnd);
+            }
+
+            const firstChildStart = Math.min(...childSections.map(child => child.sectionStart));
+            const order = range(item.sectionStart, firstChildStart);
+
+            naturalSort(item.children).forEach(child => {
+                order.push(...buildPageOrderForItem(child));
+            });
+
+            return order;
+        }
+
+        function finalizePageOrder(pageOrder, pageCount) {
+            const seen = new Set();
+            const normalized = [];
+
+            pageOrder.forEach(pageIndex => {
+                if (!Number.isInteger(pageIndex)) return;
+                if (pageIndex < 0 || pageIndex >= pageCount) return;
+                if (seen.has(pageIndex)) return;
+                seen.add(pageIndex);
+                normalized.push(pageIndex);
+            });
+
+            for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+                if (seen.has(pageIndex)) continue;
+                normalized.push(pageIndex);
+            }
+
+            return normalized;
+        }
+
+        function annotateRangeLabels(items, oldToNewPageIndex) {
+            items.forEach(item => {
+                item.pageRangeLabel = formatPageRange(item.sectionStart, item.sectionEnd);
+                item.reorderedPageRangeLabel = formatRemappedRange(item.sectionStart, item.sectionEnd, oldToNewPageIndex);
+                annotateRangeLabels(item.children, oldToNewPageIndex);
+            });
         }
 
         // ----------------------------------------------------------------
@@ -405,11 +697,10 @@
             );
         }
 
-        // 再帰的にすべての階層をソート（プレビュー用）
         function sortDeep(items) {
             return naturalSort(items).map(item => ({
                 ...item,
-                children: sortDeep(item.children)
+                children: sortDeep(item.children),
             }));
         }
 
@@ -421,29 +712,39 @@
             outlineAfter.innerHTML  = '';
 
             const sorted = sortDeep(items);
-            renderList(outlineBefore, items,  0);
-            renderList(outlineAfter,  sorted, 0);
+            renderList(outlineBefore, items, 0, 'pageRangeLabel');
+            renderList(outlineAfter, sorted, 0, 'reorderedPageRangeLabel');
 
             const total = countAll(items);
             itemCount.textContent = `全${total}項目`;
         }
 
-        function renderList(container, items, depth) {
-            const MAX_DEPTH = 2; // 表示は2階層まで
+        function renderList(container, items, depth, rangeKey) {
+            const MAX_DEPTH = 2;
+
             items.forEach((item, idx) => {
                 const li = document.createElement('li');
                 li.className = 'flex items-start gap-2 py-2 pr-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors';
                 li.style.paddingLeft = `${12 + depth * 20}px`;
 
+                const rangeLabel = item[rangeKey];
+                const countBadge = item.children.length > 0
+                    ? `<span class="flex-shrink-0 text-xs text-slate-400 mt-0.5">▾${item.children.length}</span>`
+                    : '';
+                const rangeBadge = rangeLabel
+                    ? `<span class="flex-shrink-0 mt-0.5 text-[11px] font-semibold px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300">${escapeHtml(rangeLabel)}</span>`
+                    : '';
+
                 li.innerHTML = `
                     <span class="flex-shrink-0 w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center justify-center mt-0.5">${idx + 1}</span>
                     <span class="text-slate-700 dark:text-slate-200 truncate flex-1">${escapeHtml(item.title) || '<em class="text-slate-400">タイトルなし</em>'}</span>
-                    ${item.children.length > 0 ? `<span class="flex-shrink-0 text-xs text-slate-400 mt-0.5">▾${item.children.length}</span>` : ''}
+                    ${rangeBadge}
+                    ${countBadge}
                 `;
                 container.appendChild(li);
 
                 if (item.children.length > 0 && depth < MAX_DEPTH) {
-                    renderList(container, item.children, depth + 1);
+                    renderList(container, item.children, depth + 1, rangeKey);
                 }
             });
         }
@@ -454,12 +755,6 @@
 
         // ----------------------------------------------------------------
         // ソート実行 → PDF再構築 → ダウンロード
-        //
-        // 戦略：既存のアウトラインオブジェクトを改変するのではなく、
-        // ソート済みの新しいアウトライン構造を context.obj / context.register
-        // で丸ごと再構築してから catalog に差し替える。
-        // これにより Prev/Next の削除問題を回避し、pdf-lib の低レベル API と
-        // 完全に整合した形で動作する。
         // ----------------------------------------------------------------
         async function sortAndDownload() {
             if (!pdfBytes || !loadedItems) return;
@@ -469,134 +764,341 @@
             hideError();
 
             try {
-                // ★ 毎回新しい PDFDocument インスタンスで読み込む（readOutline と同じインスタンスを使うと
-                //    register した新オブジェクトが既存 ref と混在する可能性があるため）
-                const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
-                const ctx = pdfDoc.context;
-
-                // 元のアウトラインを再読み込み（このインスタンスから dest/action/titleObj を取得）
-                const items = readOutline(pdfDoc);
-                if (!items || items.length === 0) {
+                const sourceDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+                const sourceItems = readOutline(sourceDoc);
+                if (!sourceItems || sourceItems.length === 0) {
                     showError('アウトラインが見つかりません。');
                     return;
                 }
 
-                // --- 再帰的にソート済み outline 構造を構築 ---
-                //
-                // buildLevel(items) → { firstRef, lastRef, builtItems }
-                // builtItems = [{ dict, ref }]
-                //
-                // ★ Parent は build 後に上位から設定する（循環参照を避けるため）
-                function buildLevel(items) {
-                    if (items.length === 0) return null;
+                const preview = buildOutlinePreview(sourceDoc, sourceItems);
+                const pageOrder = preview.pageOrder;
+                const oldToNewPageIndex = new Map(pageOrder.map((oldIndex, newIndex) => [oldIndex, newIndex]));
 
-                    const sorted = naturalSort(items);
+                const resultDoc = await PDFDocument.create();
+                copyDocumentMetadata(sourceDoc, resultDoc);
 
-                    const builtItems = sorted.map(item => {
-                        const childResult = buildLevel(item.children);
+                const copiedPages = await resultDoc.copyPages(sourceDoc, pageOrder);
+                copiedPages.forEach(page => resultDoc.addPage(page));
 
-                        // 新しい辞書の定義
-                        const dictDef = {};
+                const resultPages = resultDoc.getPages();
+                const outlineResult = buildSortedOutline(resultDoc, sourceDoc, preview.items, resultPages, oldToNewPageIndex);
 
-                        // タイトル：元のオブジェクトをそのまま使う（エンコード維持）
-                        if (item.titleObj) {
-                            dictDef.Title = item.titleObj;
-                        } else {
-                            dictDef.Title = PDFHexString.fromText(item.title);
-                        }
+                if (outlineResult) {
+                    const outlinesDict = resultDoc.context.obj({
+                        Type: 'Outlines',
+                        First: outlineResult.firstRef,
+                        Last: outlineResult.lastRef,
+                        Count: PDFNumber.of(outlineResult.builtItems.length),
+                    });
+                    const outlinesRef = resultDoc.context.register(outlinesDict);
 
-                        // 宛先 or アクション（どちらか一方）
-                        if (item.dest)   dictDef.Dest = item.dest;
-                        if (item.action) dictDef.A    = item.action;
-
-                        // 装飾（色・スタイルフラグ）
-                        if (item.color) dictDef.C = item.color;
-                        if (item.flags) dictDef.F = item.flags;
-
-                        // 子がある場合
-                        if (childResult) {
-                            dictDef.First = childResult.firstRef;
-                            dictDef.Last  = childResult.lastRef;
-                            // Count の符号（正=展開、負=折りたたみ）を保持し、件数を更新
-                            const childCount = childResult.builtItems.length;
-                            dictDef.Count = PDFNumber.of(
-                                item.count !== null && item.count < 0 ? -childCount : childCount
-                            );
-                        }
-
-                        const dict = ctx.obj(dictDef);
-                        const ref  = ctx.register(dict);
-
-                        // 子の Parent を自分の ref に設定
-                        if (childResult) {
-                            for (const child of childResult.builtItems) {
-                                child.dict.set(PDFName.of('Parent'), ref);
-                            }
-                        }
-
-                        return { dict, ref };
+                    outlineResult.builtItems.forEach(item => {
+                        item.dict.set(PDFName.of('Parent'), outlinesRef);
                     });
 
-                    // 同階層の Prev / Next をリンク
-                    for (let i = 0; i < builtItems.length; i++) {
-                        if (i > 0)
-                            builtItems[i].dict.set(PDFName.of('Prev'), builtItems[i - 1].ref);
-                        if (i < builtItems.length - 1)
-                            builtItems[i].dict.set(PDFName.of('Next'), builtItems[i + 1].ref);
-                    }
-
-                    return {
-                        firstRef:   builtItems[0].ref,
-                        lastRef:    builtItems[builtItems.length - 1].ref,
-                        builtItems
-                    };
+                    resultDoc.catalog.set(PDFName.of('Outlines'), outlinesRef);
                 }
 
-                const result = buildLevel(items);
-
-                // アウトラインルート辞書を新規作成
-                const outlinesDict = ctx.obj({
-                    Type:  'Outlines',
-                    First: result.firstRef,
-                    Last:  result.lastRef,
-                    Count: PDFNumber.of(result.builtItems.length)
-                });
-                const outlinesRef = ctx.register(outlinesDict);
-
-                // トップレベル項目の Parent をルートに設定
-                for (const item of result.builtItems) {
-                    item.dict.set(PDFName.of('Parent'), outlinesRef);
-                }
-
-                // カタログを差し替え
-                pdfDoc.catalog.set(PDFName.of('Outlines'), outlinesRef);
-
-                // 保存 & ダウンロード
-                const newBytes = await pdfDoc.save();
+                const newBytes = await resultDoc.save();
                 const blob = new Blob([newBytes], { type: 'application/pdf' });
-                const url  = URL.createObjectURL(blob);
-                const a    = document.createElement('a');
-                a.href     = url;
-                a.download = selectedFile
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = selectedFile
                     ? selectedFile.name.replace(/\.pdf$/i, '_sorted.pdf')
                     : 'outline_sorted.pdf';
-                a.click();
+                link.click();
                 URL.revokeObjectURL(url);
-
             } catch (err) {
                 showError(`処理に失敗しました: ${err.message}`);
                 console.error(err);
             } finally {
                 sortBtn.disabled = false;
-                sortBtnLabel.textContent = 'アウトラインを並び替えてダウンロード';
+                sortBtnLabel.textContent = 'アウトラインとページを並び替えてダウンロード';
+            }
+        }
+
+        function buildSortedOutline(resultDoc, sourceDoc, items, resultPages, oldToNewPageIndex) {
+            const ctx = resultDoc.context;
+
+            function buildLevel(levelItems) {
+                if (levelItems.length === 0) return null;
+
+                const builtItems = naturalSort(levelItems).map(item => {
+                    const childResult = buildLevel(item.children);
+                    const dictDef = {};
+                    const titleObject = lookupObject(sourceDoc, item.titleObj);
+                    const colorObject = lookupObject(sourceDoc, item.color);
+                    const flagsObject = lookupObject(sourceDoc, item.flags);
+
+                    if (titleObject && typeof titleObject.clone === 'function') {
+                        dictDef.Title = titleObject.clone(ctx);
+                    } else {
+                        dictDef.Title = PDFHexString.fromText(item.title);
+                    }
+
+                    const dest = buildDestinationForItem(item, resultPages, oldToNewPageIndex, ctx);
+                    if (dest) {
+                        dictDef.Dest = dest;
+                    } else {
+                        const externalAction = cloneExternalActionIfPossible(sourceDoc, item.action, ctx);
+                        if (externalAction) dictDef.A = externalAction;
+                    }
+
+                    if (colorObject && typeof colorObject.clone === 'function') {
+                        dictDef.C = colorObject.clone(ctx);
+                    }
+                    if (flagsObject && typeof flagsObject.clone === 'function') {
+                        dictDef.F = flagsObject.clone(ctx);
+                    }
+
+                    if (childResult) {
+                        dictDef.First = childResult.firstRef;
+                        dictDef.Last = childResult.lastRef;
+                        const childCount = childResult.builtItems.length;
+                        dictDef.Count = PDFNumber.of(
+                            item.count !== null && item.count < 0 ? -childCount : childCount
+                        );
+                    }
+
+                    const dict = ctx.obj(dictDef);
+                    const ref = ctx.register(dict);
+
+                    if (childResult) {
+                        childResult.builtItems.forEach(child => {
+                            child.dict.set(PDFName.of('Parent'), ref);
+                        });
+                    }
+
+                    return { dict, ref };
+                });
+
+                for (let i = 0; i < builtItems.length; i++) {
+                    if (i > 0) {
+                        builtItems[i].dict.set(PDFName.of('Prev'), builtItems[i - 1].ref);
+                    }
+                    if (i < builtItems.length - 1) {
+                        builtItems[i].dict.set(PDFName.of('Next'), builtItems[i + 1].ref);
+                    }
+                }
+
+                return {
+                    firstRef: builtItems[0].ref,
+                    lastRef: builtItems[builtItems.length - 1].ref,
+                    builtItems,
+                };
+            }
+
+            return buildLevel(items);
+        }
+
+        function buildDestinationForItem(item, resultPages, oldToNewPageIndex, ctx) {
+            const resolvedDest = item.resolvedDest;
+            if (!resolvedDest || !Number.isInteger(resolvedDest.pageIndex)) return null;
+
+            const newPageIndex = oldToNewPageIndex.get(resolvedDest.pageIndex);
+            if (!Number.isInteger(newPageIndex)) return null;
+
+            const page = resultPages[newPageIndex];
+            if (!page?.ref) return null;
+
+            return createDestinationArray(ctx, page.ref, resolvedDest);
+        }
+
+        function createDestinationArray(ctx, pageRef, resolvedDest) {
+            const mode = resolvedDest.mode || 'Fit';
+            const params = resolvedDest.params || [];
+
+            switch (mode) {
+                case 'XYZ':
+                    return ctx.obj([
+                        pageRef,
+                        PDFName.of('XYZ'),
+                        toOptionalPdfValue(params[0]),
+                        toOptionalPdfValue(params[1]),
+                        toOptionalPdfValue(params[2]),
+                    ]);
+                case 'FitH':
+                case 'FitBH':
+                    return ctx.obj([
+                        pageRef,
+                        PDFName.of(mode),
+                        toOptionalPdfValue(params[0]),
+                    ]);
+                case 'FitV':
+                case 'FitBV':
+                    return ctx.obj([
+                        pageRef,
+                        PDFName.of(mode),
+                        toOptionalPdfValue(params[0]),
+                    ]);
+                case 'FitR':
+                    return ctx.obj([
+                        pageRef,
+                        PDFName.of('FitR'),
+                        toRequiredPdfNumber(params[0]),
+                        toRequiredPdfNumber(params[1]),
+                        toRequiredPdfNumber(params[2]),
+                        toRequiredPdfNumber(params[3]),
+                    ]);
+                case 'Fit':
+                case 'FitB':
+                    return ctx.obj([pageRef, PDFName.of(mode)]);
+                default:
+                    return ctx.obj([pageRef, PDFName.of('Fit')]);
+            }
+        }
+
+        function cloneExternalActionIfPossible(sourceDoc, actionObj, ctx) {
+            const actionDict = lookupAs(sourceDoc, actionObj, PDFDict);
+            if (!actionDict) return null;
+
+            const actionType = pdfNameToString(dictLookupAs(sourceDoc, actionDict, 'S', PDFName));
+            if (actionType === 'GoTo') return null;
+
+            try {
+                return actionDict.clone(ctx);
+            } catch {
+                return null;
+            }
+        }
+
+        function copyDocumentMetadata(sourceDoc, targetDoc) {
+            const copyIfPresent = (getterName, setterName) => {
+                if (typeof sourceDoc[getterName] !== 'function') return;
+                if (typeof targetDoc[setterName] !== 'function') return;
+
+                const value = sourceDoc[getterName]();
+                if (value === undefined || value === null || value === '') return;
+                targetDoc[setterName](value);
+            };
+
+            copyIfPresent('getTitle', 'setTitle');
+            copyIfPresent('getAuthor', 'setAuthor');
+            copyIfPresent('getSubject', 'setSubject');
+            copyIfPresent('getCreator', 'setCreator');
+            copyIfPresent('getProducer', 'setProducer');
+
+            if (typeof sourceDoc.getKeywords === 'function' && typeof targetDoc.setKeywords === 'function') {
+                const keywords = sourceDoc.getKeywords();
+                if (Array.isArray(keywords) && keywords.length > 0) {
+                    targetDoc.setKeywords(keywords);
+                }
+            }
+
+            if (typeof sourceDoc.getCreationDate === 'function' && typeof targetDoc.setCreationDate === 'function') {
+                const createdAt = sourceDoc.getCreationDate();
+                if (createdAt instanceof Date && !Number.isNaN(createdAt.getTime())) {
+                    targetDoc.setCreationDate(createdAt);
+                }
+            }
+
+            if (typeof sourceDoc.getModificationDate === 'function' && typeof targetDoc.setModificationDate === 'function') {
+                const modifiedAt = sourceDoc.getModificationDate();
+                if (modifiedAt instanceof Date && !Number.isNaN(modifiedAt.getTime())) {
+                    targetDoc.setModificationDate(modifiedAt);
+                }
             }
         }
 
         // ----------------------------------------------------------------
         // ユーティリティ
         // ----------------------------------------------------------------
+        function lookupAs(pdfDoc, obj, ...types) {
+            if (!obj) return null;
+            try {
+                return pdfDoc.context.lookupMaybe(obj, ...types) ?? null;
+            } catch {
+                return types.some(type => obj instanceof type) ? obj : null;
+            }
+        }
+
+        function dictLookupAs(pdfDoc, dict, key, ...types) {
+            if (!dict || typeof dict.get !== 'function') return null;
+            return lookupAs(pdfDoc, dict.get(PDFName.of(key)), ...types);
+        }
+
+        function arrayLookupAs(pdfDoc, array, index, ...types) {
+            if (!array || typeof array.get !== 'function') return null;
+            return lookupAs(pdfDoc, array.get(index), ...types);
+        }
+
+        function lookupObject(pdfDoc, obj) {
+            if (!obj) return null;
+            try {
+                return pdfDoc.context.lookup(obj);
+            } catch {
+                return obj;
+            }
+        }
+
+        function getPdfTextOrName(obj) {
+            if (!obj) return null;
+            if (obj instanceof PDFString || obj instanceof PDFHexString) {
+                try { return obj.decodeText(); } catch { return null; }
+            }
+            if (obj instanceof PDFName) {
+                return pdfNameToString(obj);
+            }
+            if (typeof obj.decodeText === 'function') {
+                try { return obj.decodeText(); } catch { return null; }
+            }
+            return null;
+        }
+
+        function pdfNameToString(obj) {
+            if (!obj) return null;
+            const text = typeof obj.toString === 'function' ? obj.toString() : String(obj);
+            return text.startsWith('/') ? text.slice(1) : text;
+        }
+
+        function parseDestinationParam(obj) {
+            if (!obj || obj === PDFNull) return null;
+            if (typeof obj.toString === 'function' && obj.toString() === 'null') return null;
+            if (obj instanceof PDFNumber) return obj.asNumber();
+            return typeof obj.asNumber === 'function' ? obj.asNumber() : null;
+        }
+
+        function toOptionalPdfValue(value) {
+            return typeof value === 'number' ? PDFNumber.of(value) : PDFNull;
+        }
+
+        function toRequiredPdfNumber(value) {
+            return PDFNumber.of(typeof value === 'number' ? value : 0);
+        }
+
+        function formatPageRange(start, end) {
+            if (!Number.isInteger(start) || !Number.isInteger(end) || end <= start) return null;
+            if (end === start + 1) return `p${start + 1}`;
+            return `p${start + 1}-${end}`;
+        }
+
+        function formatRemappedRange(start, end, oldToNewPageIndex) {
+            if (!Number.isInteger(start) || !Number.isInteger(end) || end <= start) return null;
+
+            const mapped = [];
+            for (let oldPage = start; oldPage < end; oldPage++) {
+                const newPage = oldToNewPageIndex.get(oldPage);
+                if (Number.isInteger(newPage)) mapped.push(newPage);
+            }
+
+            if (mapped.length === 0) return null;
+            return formatPageRange(Math.min(...mapped), Math.max(...mapped) + 1);
+        }
+
+        function range(start, end) {
+            const pages = [];
+            for (let i = start; i < end; i++) pages.push(i);
+            return pages;
+        }
+
+        function refKey(ref) {
+            return typeof ref.toString === 'function' ? ref.toString() : String(ref);
+        }
+
         function escapeHtml(str) {
-            return str
+            return String(str ?? '')
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
