@@ -110,6 +110,9 @@ const translations = {
         'progress.total.output': '出力合計',
         'progress.pages': 'ページのPDFを生成しました。',
         'progress.all.done': 'すべてのファイルの処理が完了しました！',
+        'progress.few.seconds': '数秒',
+        'progress.seconds': '秒',
+        'progress.minutes': '分',
 
         // 失敗ファイル
         'failed.title': '処理に失敗したファイル',
@@ -274,6 +277,9 @@ const translations = {
         'progress.total.output': 'Total output',
         'progress.pages': 'page PDF generated.',
         'progress.all.done': 'All files processed successfully!',
+        'progress.few.seconds': 'a few seconds',
+        'progress.seconds': 's',
+        'progress.minutes': 'm ',
 
         // Failed files
         'failed.title': 'Failed Files',
