@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDFアウトライン並び替えツール</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="translations.js"></script>
+    <script src="utils.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '"Outfit"', 'sans-serif'],
+                        heading: ['"Outfit"', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155' }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        }
+        .text-gradient {
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #3b82f6, #6366f1);
+        }
+        .dark .text-gradient {
+            background-image: linear-gradient(to right, #60a5fa, #818cf8);
+        }
+        .file-drop-area {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23CBD5E1FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+        .dark .file-drop-area {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23475569FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+        .file-drop-area.dragging {
+            background-color: rgba(59, 130, 246, 0.1);
+            transform: scale(1.01);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%233B82F6FF' stroke-width='3' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+
+<body
+    class="bg-slate-50 dark:bg-dark-bg text-slate-800 dark:text-slate-200 font-sans antialiased transition-colors duration-300 min-h-screen selection:bg-blue-500 selection:text-white">
+
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/20 blur-[100px] dark:bg-blue-900/20"></div>
+        <div class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-indigo-400/20 blur-[100px] dark:bg-indigo-900/20"></div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <header class="flex flex-col gap-4 mb-10 py-4 animate-fade-in">
+            <nav class="flex justify-center gap-2 flex-wrap">
+                <a href="index.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.nup">面付け</a>
+                <a href="merge.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.merge">結合</a>
+                <a href="split.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.split">PDF分割</a>
+                <a href="compress.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.compress">PDF圧縮</a>
+                <a href="heic.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.heic">HEIC変換</a>
+                <a href="img2pdf.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.img2pdf">画像→PDF</a>
+                <a href="outline.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20">アウトライン整列</a>
+            </nav>
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                            アウトライン<span class="text-gradient">並び替え</span></h1>
+                        <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400">PDF Outline Sorter</p>
+                    </div>
+                </div>
+                <div
+                    class="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <button id="lang-toggle-btn"
+                        class="p-3 rounded-full text-lg hover:bg-blue-50 dark:hover:bg-slate-700 transition-all"
+                        aria-label="言語切り替え" onclick="toggleLanguage()">🇺🇸</button>
+                    <button id="theme-toggle-btn"
+                        class="p-3 rounded-full text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-slate-700 transition-all"
+                        aria-label="テーマ切り替え">
+                        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden"
+                            viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6"
+                            viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="glass-card rounded-3xl p-6 md:p-10 space-y-12 animate-slide-up">
+
+            <!-- 1. ファイル選択 -->
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-blue-500/20">1</span>
+                    <span>PDFファイルを選択</span>
+                </h2>
+                <div id="drop-area"
+                    class="file-drop-area border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-10 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 group relative overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    </div>
+                    <div class="relative z-10 flex flex-col items-center justify-center">
+                        <div
+                            class="w-20 h-20 mb-6 rounded-full bg-blue-50 dark:bg-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-10 h-10 text-blue-500 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg"
+                                fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                            </svg>
+                        </div>
+                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2">
+                            PDFをここにドラッグ＆ドロップ</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">または、ボタンから選択してください</p>
+                        <button id="select-file-btn"
+                            class="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transform hover:-translate-y-0.5 transition-all duration-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <span>ファイルを選択</span>
+                        </button>
+                        <input type="file" id="file-input" class="hidden" accept=".pdf,application/pdf">
+                    </div>
+                </div>
+                <div id="file-info"
+                    class="mt-4 text-center text-slate-600 dark:text-slate-400 font-medium h-6 transition-all duration-300">
+                </div>
+            </section>
+
+            <!-- 2. アウトライン確認 -->
+            <section id="outline-section" class="hidden animate-fade-in">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-blue-500/20">2</span>
+                    <span>アウトラインの確認</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 現在の順序 -->
+                    <div
+                        class="bg-white dark:bg-slate-700/50 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div
+                            class="px-4 py-3 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-400 flex-shrink-0"></span>
+                            <span class="text-sm font-bold text-slate-600 dark:text-slate-300">現在の順序</span>
+                            <span id="item-count"
+                                class="ml-auto text-xs text-slate-500 dark:text-slate-400 font-medium"></span>
+                        </div>
+                        <ul id="outline-before"
+                            class="divide-y divide-slate-100 dark:divide-slate-700 max-h-80 overflow-y-auto text-sm">
+                        </ul>
+                    </div>
+                    <!-- 並び替え後 -->
+                    <div
+                        class="bg-white dark:bg-slate-700/50 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <div
+                            class="px-4 py-3 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-green-400 flex-shrink-0"></span>
+                            <span class="text-sm font-bold text-slate-600 dark:text-slate-300">並び替え後（プレビュー）</span>
+                        </div>
+                        <ul id="outline-after"
+                            class="divide-y divide-slate-100 dark:divide-slate-700 max-h-80 overflow-y-auto text-sm">
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 並び替えて保存 -->
+            <section id="action-section" class="hidden animate-fade-in">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-blue-500/20">3</span>
+                    <span>並び替えて保存</span>
+                </h2>
+                <button id="sort-btn"
+                    class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300 overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 relative z-10" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 7h18M3 12h12M3 17h6" />
+                    </svg>
+                    <span id="sort-btn-label" class="relative z-10 text-lg">アウトラインを並び替えてダウンロード</span>
+                </button>
+            </section>
+
+            <!-- エラー -->
+            <div id="error-box"
+                class="hidden p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl flex items-start gap-3 animate-fade-in">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p id="error-message" class="font-medium"></p>
+            </div>
+
+        </main>
+
+        <footer class="text-center mt-12 text-sm text-slate-500 dark:text-slate-400 font-medium">
+            <p>&copy; 2024 PDF Tools. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        const { PDFDocument, PDFName, PDFString, PDFHexString, PDFNumber, PDFNull } = PDFLib;
+
+        // DOM
+        const dropArea        = document.getElementById('drop-area');
+        const fileInput       = document.getElementById('file-input');
+        const selectFileBtn   = document.getElementById('select-file-btn');
+        const fileInfo        = document.getElementById('file-info');
+        const outlineSection  = document.getElementById('outline-section');
+        const actionSection   = document.getElementById('action-section');
+        const outlineBefore   = document.getElementById('outline-before');
+        const outlineAfter    = document.getElementById('outline-after');
+        const itemCount       = document.getElementById('item-count');
+        const sortBtn         = document.getElementById('sort-btn');
+        const sortBtnLabel    = document.getElementById('sort-btn-label');
+        const errorBox        = document.getElementById('error-box');
+        const errorMessage    = document.getElementById('error-message');
+
+        let pdfBytes     = null;
+        let loadedItems  = null; // 読み込んだアウトラインツリー
+        let selectedFile = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initLanguage();
+        });
+
+        selectFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) handleFile(e.target.files[0]);
+            fileInput.value = '';
+        });
+        sortBtn.addEventListener('click', sortAndDownload);
+        setupDropZone(dropArea, (dt) => { if (dt.files[0]) handleFile(dt.files[0]); });
+
+        // ----------------------------------------------------------------
+        // ファイル読み込み
+        // ----------------------------------------------------------------
+        async function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+                showError('PDFファイルを選択してください。');
+                return;
+            }
+            hideError();
+            outlineSection.classList.add('hidden');
+            actionSection.classList.add('hidden');
+            fileInfo.textContent = `${file.name}  (${formatBytes(file.size)})`;
+            selectedFile = file;
+
+            try {
+                pdfBytes = await file.arrayBuffer();
+                const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+                loadedItems = readOutline(pdfDoc);
+
+                if (!loadedItems || loadedItems.length === 0) {
+                    showError('このPDFにはアウトライン（しおり）が含まれていません。');
+                    return;
+                }
+
+                renderComparison(loadedItems);
+                outlineSection.classList.remove('hidden');
+                actionSection.classList.remove('hidden');
+            } catch (err) {
+                showError(`PDFの読み込みに失敗しました: ${err.message}`);
+                console.error(err);
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // アウトライン読み取り
+        //   戻り値: Item[]
+        //   Item = { title, titleObj, dest, action, count, color, flags, children: Item[] }
+        // ----------------------------------------------------------------
+        function readOutline(pdfDoc) {
+            const outlinesRef = pdfDoc.catalog.get(PDFName.of('Outlines'));
+            if (!outlinesRef) return null;
+
+            const outlinesDict = pdfDoc.context.lookup(outlinesRef);
+            if (!outlinesDict) return null;
+
+            function readLevel(parentDict) {
+                const items = [];
+                let currentRef = parentDict.get(PDFName.of('First'));
+
+                while (currentRef) {
+                    let dict;
+                    try { dict = pdfDoc.context.lookup(currentRef); } catch { break; }
+                    if (!dict) break;
+
+                    // タイトル取得（PDFString / PDFHexString どちらも decodeText() で読める）
+                    const titleObj = dict.get(PDFName.of('Title'));
+                    let title = '';
+                    if (titleObj && typeof titleObj.decodeText === 'function') {
+                        try { title = titleObj.decodeText(); } catch { title = ''; }
+                    }
+
+                    // Count の符号でopen/closed状態を保持
+                    const countObj = dict.get(PDFName.of('Count'));
+                    const count = (countObj && typeof countObj.asNumber === 'function')
+                        ? countObj.asNumber()
+                        : null;
+
+                    items.push({
+                        title,
+                        titleObj,                             // 書き戻し用
+                        dest:   dict.get(PDFName.of('Dest')),   // PDFArray or PDFString (named dest)
+                        action: dict.get(PDFName.of('A')),      // PDFDict (GoTo等)
+                        count,
+                        color:  dict.get(PDFName.of('C')),
+                        flags:  dict.get(PDFName.of('F')),
+                        children: readLevel(dict)
+                    });
+
+                    currentRef = dict.get(PDFName.of('Next'));
+                }
+                return items;
+            }
+
+            return readLevel(outlinesDict);
+        }
+
+        // ----------------------------------------------------------------
+        // 自然順ソート（1, 2, 3 ... 10, 11 の順）
+        // ----------------------------------------------------------------
+        function naturalSort(items) {
+            return [...items].sort((a, b) =>
+                a.title.localeCompare(b.title, 'ja', { numeric: true, sensitivity: 'base' })
+            );
+        }
+
+        // 再帰的にすべての階層をソート（プレビュー用）
+        function sortDeep(items) {
+            return naturalSort(items).map(item => ({
+                ...item,
+                children: sortDeep(item.children)
+            }));
+        }
+
+        // ----------------------------------------------------------------
+        // 比較プレビュー表示
+        // ----------------------------------------------------------------
+        function renderComparison(items) {
+            outlineBefore.innerHTML = '';
+            outlineAfter.innerHTML  = '';
+
+            const sorted = sortDeep(items);
+            renderList(outlineBefore, items,  0);
+            renderList(outlineAfter,  sorted, 0);
+
+            const total = countAll(items);
+            itemCount.textContent = `全${total}項目`;
+        }
+
+        function renderList(container, items, depth) {
+            const MAX_DEPTH = 2; // 表示は2階層まで
+            items.forEach((item, idx) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start gap-2 py-2 pr-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors';
+                li.style.paddingLeft = `${12 + depth * 20}px`;
+
+                li.innerHTML = `
+                    <span class="flex-shrink-0 w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center justify-center mt-0.5">${idx + 1}</span>
+                    <span class="text-slate-700 dark:text-slate-200 truncate flex-1">${escapeHtml(item.title) || '<em class="text-slate-400">タイトルなし</em>'}</span>
+                    ${item.children.length > 0 ? `<span class="flex-shrink-0 text-xs text-slate-400 mt-0.5">▾${item.children.length}</span>` : ''}
+                `;
+                container.appendChild(li);
+
+                if (item.children.length > 0 && depth < MAX_DEPTH) {
+                    renderList(container, item.children, depth + 1);
+                }
+            });
+        }
+
+        function countAll(items) {
+            return items.reduce((n, item) => n + 1 + countAll(item.children), 0);
+        }
+
+        // ----------------------------------------------------------------
+        // ソート実行 → PDF再構築 → ダウンロード
+        //
+        // 戦略：既存のアウトラインオブジェクトを改変するのではなく、
+        // ソート済みの新しいアウトライン構造を context.obj / context.register
+        // で丸ごと再構築してから catalog に差し替える。
+        // これにより Prev/Next の削除問題を回避し、pdf-lib の低レベル API と
+        // 完全に整合した形で動作する。
+        // ----------------------------------------------------------------
+        async function sortAndDownload() {
+            if (!pdfBytes || !loadedItems) return;
+
+            sortBtn.disabled = true;
+            sortBtnLabel.textContent = '処理中...';
+            hideError();
+
+            try {
+                // ★ 毎回新しい PDFDocument インスタンスで読み込む（readOutline と同じインスタンスを使うと
+                //    register した新オブジェクトが既存 ref と混在する可能性があるため）
+                const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+                const ctx = pdfDoc.context;
+
+                // 元のアウトラインを再読み込み（このインスタンスから dest/action/titleObj を取得）
+                const items = readOutline(pdfDoc);
+                if (!items || items.length === 0) {
+                    showError('アウトラインが見つかりません。');
+                    return;
+                }
+
+                // --- 再帰的にソート済み outline 構造を構築 ---
+                //
+                // buildLevel(items) → { firstRef, lastRef, builtItems }
+                // builtItems = [{ dict, ref }]
+                //
+                // ★ Parent は build 後に上位から設定する（循環参照を避けるため）
+                function buildLevel(items) {
+                    if (items.length === 0) return null;
+
+                    const sorted = naturalSort(items);
+
+                    const builtItems = sorted.map(item => {
+                        const childResult = buildLevel(item.children);
+
+                        // 新しい辞書の定義
+                        const dictDef = {};
+
+                        // タイトル：元のオブジェクトをそのまま使う（エンコード維持）
+                        if (item.titleObj) {
+                            dictDef.Title = item.titleObj;
+                        } else {
+                            dictDef.Title = PDFHexString.fromText(item.title);
+                        }
+
+                        // 宛先 or アクション（どちらか一方）
+                        if (item.dest)   dictDef.Dest = item.dest;
+                        if (item.action) dictDef.A    = item.action;
+
+                        // 装飾（色・スタイルフラグ）
+                        if (item.color) dictDef.C = item.color;
+                        if (item.flags) dictDef.F = item.flags;
+
+                        // 子がある場合
+                        if (childResult) {
+                            dictDef.First = childResult.firstRef;
+                            dictDef.Last  = childResult.lastRef;
+                            // Count の符号（正=展開、負=折りたたみ）を保持し、件数を更新
+                            const childCount = childResult.builtItems.length;
+                            dictDef.Count = PDFNumber.of(
+                                item.count !== null && item.count < 0 ? -childCount : childCount
+                            );
+                        }
+
+                        const dict = ctx.obj(dictDef);
+                        const ref  = ctx.register(dict);
+
+                        // 子の Parent を自分の ref に設定
+                        if (childResult) {
+                            for (const child of childResult.builtItems) {
+                                child.dict.set(PDFName.of('Parent'), ref);
+                            }
+                        }
+
+                        return { dict, ref };
+                    });
+
+                    // 同階層の Prev / Next をリンク
+                    for (let i = 0; i < builtItems.length; i++) {
+                        if (i > 0)
+                            builtItems[i].dict.set(PDFName.of('Prev'), builtItems[i - 1].ref);
+                        if (i < builtItems.length - 1)
+                            builtItems[i].dict.set(PDFName.of('Next'), builtItems[i + 1].ref);
+                    }
+
+                    return {
+                        firstRef:   builtItems[0].ref,
+                        lastRef:    builtItems[builtItems.length - 1].ref,
+                        builtItems
+                    };
+                }
+
+                const result = buildLevel(items);
+
+                // アウトラインルート辞書を新規作成
+                const outlinesDict = ctx.obj({
+                    Type:  'Outlines',
+                    First: result.firstRef,
+                    Last:  result.lastRef,
+                    Count: PDFNumber.of(result.builtItems.length)
+                });
+                const outlinesRef = ctx.register(outlinesDict);
+
+                // トップレベル項目の Parent をルートに設定
+                for (const item of result.builtItems) {
+                    item.dict.set(PDFName.of('Parent'), outlinesRef);
+                }
+
+                // カタログを差し替え
+                pdfDoc.catalog.set(PDFName.of('Outlines'), outlinesRef);
+
+                // 保存 & ダウンロード
+                const newBytes = await pdfDoc.save();
+                const blob = new Blob([newBytes], { type: 'application/pdf' });
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement('a');
+                a.href     = url;
+                a.download = selectedFile
+                    ? selectedFile.name.replace(/\.pdf$/i, '_sorted.pdf')
+                    : 'outline_sorted.pdf';
+                a.click();
+                URL.revokeObjectURL(url);
+
+            } catch (err) {
+                showError(`処理に失敗しました: ${err.message}`);
+                console.error(err);
+            } finally {
+                sortBtn.disabled = false;
+                sortBtnLabel.textContent = 'アウトラインを並び替えてダウンロード';
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // ユーティリティ
+        // ----------------------------------------------------------------
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorBox.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorBox.classList.add('hidden');
+        }
+    </script>
+</body>
+
+</html>

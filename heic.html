@@ -7,7 +7,6 @@
     <title>HEIC to PNG 変換ツール</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="translations.js"></script>
     <script src="utils.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -259,7 +258,7 @@
                             </svg>
                             <span data-i18n="common.btn.addfile">ファイルを追加</span>
                         </button>
-                        <input type="file" id="file-input" class="hidden" accept=".heic,.HEIC" multiple>
+                        <input type="file" id="file-input" class="hidden" accept=".heic,.HEIC,.heif,.HEIF,image/heic,image/heif" multiple>
                     </div>
                 </div>
 
@@ -290,8 +289,41 @@
                 <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
                     <span
                         class="bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-fuchsia-500/20">2</span>
-                    <span data-i18n="heic.step2.title">変換</span>
+                    <span>出力形式を選択して変換</span>
                 </h2>
+
+                <!-- フォーマット選択 -->
+                <div class="flex gap-3 mb-4">
+                    <label class="flex-1">
+                        <input type="radio" name="output-format" value="png" checked class="sr-only peer">
+                        <div class="peer-checked:bg-gradient-to-br peer-checked:from-fuchsia-500 peer-checked:to-purple-600 peer-checked:text-white peer-checked:border-transparent peer-checked:shadow-lg peer-checked:shadow-fuchsia-500/20 cursor-pointer text-center py-3 px-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold transition-all duration-200 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 bg-white dark:bg-slate-700/50">
+                            PNG
+                        </div>
+                    </label>
+                    <label class="flex-1">
+                        <input type="radio" name="output-format" value="jpeg" class="sr-only peer">
+                        <div class="peer-checked:bg-gradient-to-br peer-checked:from-fuchsia-500 peer-checked:to-purple-600 peer-checked:text-white peer-checked:border-transparent peer-checked:shadow-lg peer-checked:shadow-fuchsia-500/20 cursor-pointer text-center py-3 px-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold transition-all duration-200 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 bg-white dark:bg-slate-700/50">
+                            JPEG
+                        </div>
+                    </label>
+                    <label class="flex-1">
+                        <input type="radio" name="output-format" value="webp" class="sr-only peer">
+                        <div class="peer-checked:bg-gradient-to-br peer-checked:from-fuchsia-500 peer-checked:to-purple-600 peer-checked:text-white peer-checked:border-transparent peer-checked:shadow-lg peer-checked:shadow-fuchsia-500/20 cursor-pointer text-center py-3 px-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold transition-all duration-200 hover:border-fuchsia-300 dark:hover:border-fuchsia-700 bg-white dark:bg-slate-700/50">
+                            WebP
+                        </div>
+                    </label>
+                </div>
+
+                <!-- JPEG品質スライダー（JPEG選択時のみ表示） -->
+                <div id="jpeg-quality-row" class="hidden mb-4 p-4 bg-white dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-slate-600 dark:text-slate-300">品質</span>
+                        <span id="jpeg-quality-label" class="text-sm font-bold text-fuchsia-600 dark:text-fuchsia-400">92</span>
+                    </div>
+                    <input id="jpeg-quality" type="range" min="1" max="100" value="92"
+                        class="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-full appearance-none cursor-pointer accent-fuchsia-500">
+                </div>
+
                 <button id="convert-btn" disabled
                     class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-fuchsia-500/30 hover:shadow-fuchsia-500/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none overflow-hidden">
                     <div
@@ -302,7 +334,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span class="relative z-10 text-lg" data-i18n="heic.btn.convert">PNGに変換</span>
+                    <span id="convert-btn-label" class="relative z-10 text-lg">PNGに変換</span>
                 </button>
             </section>
 
@@ -350,7 +382,20 @@
         </footer>
     </div>
 
-    <script>
+    <script type="module">
+        import libheifFactory from 'https://cdn.jsdelivr.net/npm/libheif-js@1.19.8/libheif-wasm/libheif-bundle.mjs';
+
+        // ファクトリを呼び出してWASM初期化を待つ（一度だけ）
+        let _libheif = null;
+        async function getLibheif() {
+            if (!_libheif) {
+                const mod = libheifFactory();
+                await mod.ready;
+                _libheif = mod;
+            }
+            return _libheif;
+        }
+
         // DOM要素
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('file-input');
@@ -367,17 +412,38 @@
         const resultsGrid = document.getElementById('results-grid');
         const errorBox = document.getElementById('error-box');
         const errorMessage = document.getElementById('error-message');
-        const themeToggleBtn = document.getElementById('theme-toggle-btn');
-        const themeIconSun = document.getElementById('theme-icon-sun');
-        const themeIconMoon = document.getElementById('theme-icon-moon');
 
         let selectedFiles = [];
 
-        // --- 初期化 ---
-        document.addEventListener('DOMContentLoaded', () => {
-            initTheme();
-            initLanguage();
+        // --- フォーマット選択 ---
+        const formatLabels = { png: 'PNGに変換', jpeg: 'JPEGに変換', webp: 'WebPに変換' };
+        const jpegQualityRow = document.getElementById('jpeg-quality-row');
+        const jpegQualityInput = document.getElementById('jpeg-quality');
+        const jpegQualityLabel = document.getElementById('jpeg-quality-label');
+        const convertBtnLabel = document.getElementById('convert-btn-label');
+
+        document.querySelectorAll('input[name="output-format"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const fmt = radio.value;
+                convertBtnLabel.textContent = formatLabels[fmt];
+                jpegQualityRow.classList.toggle('hidden', fmt !== 'jpeg');
+            });
         });
+        jpegQualityInput.addEventListener('input', () => {
+            jpegQualityLabel.textContent = jpegQualityInput.value;
+        });
+
+        function getOutputFormat() {
+            const fmt = document.querySelector('input[name="output-format"]:checked').value;
+            const mimeMap = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp' };
+            const extMap  = { png: '.png', jpeg: '.jpg', webp: '.webp' };
+            const quality = fmt === 'jpeg' ? parseInt(jpegQualityInput.value) / 100 : undefined;
+            return { mime: mimeMap[fmt], ext: extMap[fmt], quality };
+        }
+
+        // --- 初期化 (module は defer 済みなので DOM は確実に ready) ---
+        initTheme();
+        initLanguage();
 
         // --- イベントリスナー ---
         selectFileBtn.addEventListener('click', () => fileInput.click());
@@ -391,9 +457,11 @@
 
         // --- ファイル操作 ---
         function handleFileSelection(fileList) {
-            const heicFiles = Array.from(fileList).filter(f =>
-                f.name.toLowerCase().endsWith('.heic') || f.type === 'image/heic'
-            );
+            const heicFiles = Array.from(fileList).filter(f => {
+                const nameLower = f.name.toLowerCase();
+                return nameLower.endsWith('.heic') || nameLower.endsWith('.heif')
+                    || f.type === 'image/heic' || f.type === 'image/heif';
+            });
             if (heicFiles.length === 0) {
                 if (selectedFiles.length === 0) showError(t('heic.error.noheic') || 'HEICファイルを選択してください');
                 return;
@@ -480,6 +548,46 @@
             hideError();
         }
 
+        // --- HEIC デコード → 指定フォーマットで Blob を返す ---
+        async function convertHeicToBlob(file, mime, quality) {
+            const libheif = await getLibheif();
+            const buffer = await file.arrayBuffer();
+            const decoder = new libheif.HeifDecoder();
+            const images = decoder.decode(new Uint8Array(buffer));
+
+            if (!images || images.length === 0) {
+                throw new Error('画像データが見つかりません');
+            }
+
+            const image = images[0];
+            const width = image.get_width();
+            const height = image.get_height();
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.createImageData(width, height);
+
+            await new Promise((resolve, reject) => {
+                image.display(imageData, (displayData) => {
+                    if (!displayData) {
+                        reject(new Error('画像のデコードに失敗しました'));
+                        return;
+                    }
+                    ctx.putImageData(displayData, 0, 0);
+                    resolve();
+                });
+            });
+
+            return new Promise((resolve, reject) => {
+                canvas.toBlob((blob) => {
+                    if (blob) resolve(blob);
+                    else reject(new Error('画像生成に失敗しました'));
+                }, mime, quality);
+            });
+        }
+
         // --- 変換 ---
         async function convertFiles() {
             if (selectedFiles.length === 0) return;
@@ -493,6 +601,7 @@
             hideError();
 
             const results = [];
+            const { mime, ext, quality } = getOutputFormat();
 
             try {
                 for (let i = 0; i < selectedFiles.length; i++) {
@@ -500,18 +609,14 @@
                     progressDetails.textContent = `${t('heic.progress.converting') || '変換中'}: ${i + 1} / ${selectedFiles.length} - ${fileObj.name}`;
 
                     try {
-                        const pngBlob = await heic2any({
-                            blob: fileObj.file,
-                            toType: 'image/png',
-                            quality: 1
-                        });
-
-                        const url = URL.createObjectURL(pngBlob);
-                        const newName = fileObj.name.replace(/\.heic$/i, '.png');
-                        results.push({ name: newName, url, blob: pngBlob });
+                        const blob = await convertHeicToBlob(fileObj.file, mime, quality);
+                        const url = URL.createObjectURL(blob);
+                        const newName = fileObj.name.replace(/\.(heic|heif)$/i, ext);
+                        results.push({ name: newName, url, blob });
                     } catch (err) {
                         console.error('Conversion error:', err);
-                        results.push({ name: fileObj.name, error: true });
+                        const errMsg = err && (err.message || err.toString()) || '不明なエラー';
+                        results.push({ name: fileObj.name, error: true, errorMsg: errMsg });
                     }
 
                     progressBar.style.width = `${((i + 1) / selectedFiles.length) * 100}%`;
@@ -546,6 +651,7 @@
                         <div class="p-3">
                             <p class="text-xs text-red-500 truncate">${result.name}</p>
                             <p class="text-xs text-red-400">${t('heic.error.failed') || '変換失敗'}</p>
+                            <p class="text-xs text-red-300 mt-1 break-all">${result.errorMsg || ''}</p>
                         </div>
                     `;
                 } else {
