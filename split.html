@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF分割ツール</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <script src="translations.js"></script>
+    <script src="utils.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '"Outfit"', 'sans-serif'],
+                        heading: ['"Outfit"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#ecfeff', 100: '#cffafe', 200: '#a5f3fc', 300: '#67e8f9',
+                            400: '#22d3ee', 500: '#06b6d4', 600: '#0891b2', 700: '#0e7490',
+                            800: '#155e75', 900: '#164e63',
+                        },
+                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155' }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; }
+        .glass-card {
+            background: rgba(255,255,255,0.8); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.07);
+        }
+        .dark .glass-card {
+            background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.2);
+        }
+        .text-gradient {
+            background-clip: text; -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #06b6d4, #0891b2);
+        }
+        .dark .text-gradient { background-image: linear-gradient(to right, #22d3ee, #06b6d4); }
+        .file-drop-area {
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23CBD5E1FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+        .dark .file-drop-area {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23475569FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+        .file-drop-area.dragging {
+            background-color: rgba(6,182,212,0.1); transform: scale(1.01);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%2306B6D4FF' stroke-width='3' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-dark-bg text-slate-800 dark:text-slate-200 font-sans antialiased transition-colors duration-300 min-h-screen selection:bg-cyan-500 selection:text-white">
+
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-cyan-400/20 blur-[100px] dark:bg-cyan-900/20"></div>
+        <div class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-teal-400/20 blur-[100px] dark:bg-teal-900/20"></div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <header class="flex flex-col gap-4 mb-10 py-4 animate-fade-in">
+            <nav class="flex justify-center gap-2 flex-wrap">
+                <a href="index.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.nup">面付け</a>
+                <a href="merge.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.merge">結合</a>
+                <a href="split.html" class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-lg shadow-cyan-500/20" data-i18n="nav.split">PDF分割</a>
+                <a href="compress.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.compress">PDF圧縮</a>
+                <a href="heic.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.heic">HEIC変換</a>
+                <a href="img2pdf.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.img2pdf">画像→PDF</a>
+            </nav>
+            <div class="flex justify-between items-center">
+                <div class="text-left">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight" data-i18n="split.title">PDF<span class="text-gradient">分割</span>ツール</h1>
+                            <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400" data-i18n="split.subtitle">PDF Split Tool</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <button id="lang-toggle-btn" class="p-3 rounded-full text-lg hover:bg-cyan-50 dark:hover:bg-slate-700 transition-all" aria-label="言語切り替え" onclick="toggleLanguage()">🇺🇸</button>
+                    <button id="theme-toggle-btn" class="p-3 rounded-full text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-slate-700 transition-all" aria-label="テーマ切り替え">
+                        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+                        </svg>
+                        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="glass-card rounded-3xl p-6 md:p-10 space-y-12 animate-slide-up">
+
+            <!-- 1. ファイル選択 -->
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span class="bg-gradient-to-br from-cyan-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-cyan-500/20">1</span>
+                    <span data-i18n="split.step1.title">PDFファイルを選択</span>
+                </h2>
+                <div id="drop-area" class="file-drop-area border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-10 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 group relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div class="relative z-10 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-6 rounded-full bg-cyan-50 dark:bg-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-10 h-10 text-cyan-500 dark:text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                            </svg>
+                        </div>
+                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2" data-i18n="split.drop.title">PDFファイルをここにドラッグ＆ドロップ</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6" data-i18n="split.drop.subtitle">または、ボタンから選択してください</p>
+                        <button id="select-file-btn" class="flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transform hover:-translate-y-0.5 transition-all duration-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span data-i18n="common.btn.addfile">ファイルを追加</span>
+                        </button>
+                        <input type="file" id="file-input" class="hidden" accept=".pdf">
+                    </div>
+                </div>
+                <div id="file-info" class="mt-4 text-center text-slate-600 dark:text-slate-400 font-medium h-6 transition-all duration-300"></div>
+            </section>
+
+            <!-- 2. 設定 -->
+            <section id="settings-section" class="hidden">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span class="bg-gradient-to-br from-cyan-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-cyan-500/20">2</span>
+                    <span data-i18n="split.step2.title">分割設定</span>
+                </h2>
+                <div class="bg-slate-50/80 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-5">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3" data-i18n="split.mode.label">分割モード</label>
+                        <div class="space-y-3">
+                            <label class="flex items-start gap-3 p-4 bg-white dark:bg-slate-700/50 rounded-xl border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:border-cyan-400 dark:hover:border-cyan-500 transition-all has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-50 dark:has-[:checked]:bg-cyan-900/20">
+                                <input type="radio" name="split-mode" value="pages" checked class="mt-0.5 accent-cyan-500">
+                                <div>
+                                    <span class="block font-semibold text-slate-700 dark:text-slate-200" data-i18n="split.mode.pages">ページを個別に分割（1ページ1ファイル）</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 p-4 bg-white dark:bg-slate-700/50 rounded-xl border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:border-cyan-400 dark:hover:border-cyan-500 transition-all has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-50 dark:has-[:checked]:bg-cyan-900/20">
+                                <input type="radio" name="split-mode" value="range" class="mt-0.5 accent-cyan-500">
+                                <div class="flex-1">
+                                    <span class="block font-semibold text-slate-700 dark:text-slate-200 mb-2" data-i18n="split.mode.range">ページ範囲を指定して抽出</span>
+                                    <div id="range-input-area" class="hidden">
+                                        <input type="text" id="range-input" placeholder="例: 1,3-5,8-10" class="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all text-sm" data-i18n-placeholder="split.range.placeholder">
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5" data-i18n="split.range.hint">カンマ区切りでページ番号または範囲（例: 1,3-5,8）</p>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 p-4 bg-white dark:bg-slate-700/50 rounded-xl border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:border-cyan-400 dark:hover:border-cyan-500 transition-all has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-50 dark:has-[:checked]:bg-cyan-900/20">
+                                <input type="radio" name="split-mode" value="interval" class="mt-0.5 accent-cyan-500">
+                                <div class="flex-1">
+                                    <span class="block font-semibold text-slate-700 dark:text-slate-200 mb-2" data-i18n="split.mode.interval">N枚ごとに分割</span>
+                                    <div id="interval-input-area" class="hidden flex items-center gap-2">
+                                        <input type="number" id="interval-input" value="1" min="1" class="w-20 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all text-sm">
+                                        <span class="text-sm text-slate-600 dark:text-slate-400" data-i18n="split.interval.pages">ページ</span>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 実行 -->
+            <section id="execute-section" class="hidden">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span class="bg-gradient-to-br from-cyan-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-cyan-500/20">3</span>
+                    <span data-i18n="split.step3.title">実行</span>
+                </h2>
+                <button id="split-btn" class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all duration-300 overflow-hidden">
+                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                    </svg>
+                    <span class="relative z-10 text-lg" data-i18n="split.btn">PDF分割を実行</span>
+                </button>
+            </section>
+
+            <!-- 4. 進捗 -->
+            <section id="progress-section" class="hidden animate-fade-in">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span class="bg-gradient-to-br from-cyan-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-cyan-500/20">4</span>
+                    <span data-i18n="split.step4.title">進捗状況</span>
+                </h2>
+                <div id="progress-details" class="text-sm text-center text-slate-600 dark:text-slate-400 mb-4 font-medium"></div>
+                <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 overflow-hidden">
+                    <div id="progress-bar" class="bg-gradient-to-r from-cyan-500 to-teal-600 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </section>
+
+            <!-- 結果 -->
+            <section id="results-section" class="hidden animate-fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white" data-i18n="split.results.title">分割結果</h3>
+                    <button id="download-all-btn" class="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-teal-600 hover:from-cyan-600 hover:to-teal-700 text-white font-bold py-2 px-5 rounded-xl text-sm transition-all shadow-md shadow-cyan-500/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        <span data-i18n="split.results.downloadall">すべてダウンロード</span>
+                    </button>
+                </div>
+                <div id="results-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
+            </section>
+
+            <!-- エラー -->
+            <div id="error-box" class="hidden mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl flex items-start gap-3 animate-fade-in">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p id="error-message" class="font-medium"></p>
+            </div>
+        </main>
+
+        <footer class="text-center mt-12 text-sm text-slate-500 dark:text-slate-400 font-medium">
+            <p>&copy; 2024 PDF Tools. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        const { PDFDocument } = PDFLib;
+
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const selectFileBtn = document.getElementById('select-file-btn');
+        const fileInfo = document.getElementById('file-info');
+        const settingsSection = document.getElementById('settings-section');
+        const executeSection = document.getElementById('execute-section');
+        const splitBtn = document.getElementById('split-btn');
+        const progressSection = document.getElementById('progress-section');
+        const progressBar = document.getElementById('progress-bar');
+        const progressDetails = document.getElementById('progress-details');
+        const resultsSection = document.getElementById('results-section');
+        const resultsList = document.getElementById('results-list');
+        const downloadAllBtn = document.getElementById('download-all-btn');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
+
+        let selectedFile = null;
+        let totalPageCount = 0;
+        let splitResults = []; // { name, bytes }[]
+
+        // --- 初期化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initLanguage();
+        });
+
+        // --- イベントリスナー ---
+        selectFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFileSelection(e.target.files[0]);
+            fileInput.value = '';
+        });
+        setupDropZone(dropArea, (dt) => {
+            const pdfs = Array.from(dt.files).filter(f => f.type === 'application/pdf');
+            if (pdfs.length > 0) handleFileSelection(pdfs[0]);
+            else showError(t('split.error.nopdf'));
+        });
+
+        // モード切替でサブ入力を表示
+        document.querySelectorAll('input[name="split-mode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                document.getElementById('range-input-area').classList.toggle('hidden', radio.value !== 'range');
+                document.getElementById('interval-input-area').classList.toggle('hidden', radio.value !== 'interval');
+            });
+        });
+
+        splitBtn.addEventListener('click', runSplit);
+        downloadAllBtn.addEventListener('click', downloadAll);
+
+        // --- ファイル処理 ---
+        async function handleFileSelection(file) {
+            hideError();
+            try {
+                const buf = await file.arrayBuffer();
+                const pdf = await PDFDocument.load(buf, { ignoreEncryption: true });
+                totalPageCount = pdf.getPageCount();
+                selectedFile = file;
+
+                fileInfo.textContent = `${file.name}  —  ${totalPageCount} ${t('split.pagecount')}`;
+                settingsSection.classList.remove('hidden');
+                executeSection.classList.remove('hidden');
+                resultsSection.classList.add('hidden');
+                resultsList.innerHTML = '';
+                splitResults = [];
+            } catch (e) {
+                if (e.message.includes('encrypted') || e.message.includes('password')) {
+                    showError(t('error.encrypted'));
+                } else {
+                    showError(t('error.ioread'));
+                }
+                console.error(e);
+            }
+        }
+
+        // --- ページ範囲パーサー ---
+        // "1,3-5,8" → [0,2,3,4,7] (0-indexed)
+        function parsePageRange(rangeStr, maxPage) {
+            const pages = new Set();
+            const parts = rangeStr.split(',');
+            for (const part of parts) {
+                const trimmed = part.trim();
+                if (!trimmed) continue;
+                const match = trimmed.match(/^(\d+)(?:-(\d+))?$/);
+                if (!match) return null;
+                const from = parseInt(match[1]);
+                const to = match[2] ? parseInt(match[2]) : from;
+                if (from < 1 || to < from || to > maxPage) return null;
+                for (let i = from; i <= to; i++) pages.add(i - 1);
+            }
+            if (pages.size === 0) return null;
+            return Array.from(pages).sort((a, b) => a - b);
+        }
+
+        // --- 分割実行 ---
+        async function runSplit() {
+            if (!selectedFile) { showError(t('split.error.nopdf')); return; }
+
+            hideError();
+            splitResults = [];
+            resultsList.innerHTML = '';
+            resultsSection.classList.add('hidden');
+            progressSection.classList.remove('hidden');
+            splitBtn.disabled = true;
+
+            const mode = document.querySelector('input[name="split-mode"]:checked').value;
+            const fileBuffer = await selectedFile.arrayBuffer();
+            const srcPdf = await PDFDocument.load(fileBuffer, { ignoreEncryption: true });
+            const pageCount = srcPdf.getPageCount();
+            const baseName = selectedFile.name.replace(/\.pdf$/i, '');
+
+            try {
+                if (mode === 'pages') {
+                    // 1ページ1ファイル
+                    for (let i = 0; i < pageCount; i++) {
+                        const newPdf = await PDFDocument.create();
+                        const [page] = await newPdf.copyPages(srcPdf, [i]);
+                        newPdf.addPage(page);
+                        const bytes = await newPdf.save();
+                        const name = `${baseName}_p${String(i + 1).padStart(String(pageCount).length, '0')}.pdf`;
+                        splitResults.push({ name, bytes });
+                        updateProgress(((i + 1) / pageCount) * 100, `${t('split.progress.splitting')} ${i + 1} / ${pageCount}`);
+                        await new Promise(r => setTimeout(r, 0)); // UI更新
+                    }
+                } else if (mode === 'range') {
+                    const rangeStr = document.getElementById('range-input').value.trim();
+                    if (!rangeStr) { showError(t('split.error.range')); splitBtn.disabled = false; return; }
+                    const indices = parsePageRange(rangeStr, pageCount);
+                    if (!indices) {
+                        showError(t('split.error.range'));
+                        splitBtn.disabled = false;
+                        return;
+                    }
+                    const newPdf = await PDFDocument.create();
+                    const copiedPages = await newPdf.copyPages(srcPdf, indices);
+                    copiedPages.forEach(p => newPdf.addPage(p));
+                    const bytes = await newPdf.save();
+                    const name = `${baseName}_extract.pdf`;
+                    splitResults.push({ name, bytes });
+                    updateProgress(100, t('split.progress.done'));
+                } else if (mode === 'interval') {
+                    const n = Math.max(1, parseInt(document.getElementById('interval-input').value) || 1);
+                    const chunkCount = Math.ceil(pageCount / n);
+                    for (let chunk = 0; chunk < chunkCount; chunk++) {
+                        const from = chunk * n;
+                        const to = Math.min(from + n, pageCount);
+                        const indices = Array.from({ length: to - from }, (_, k) => from + k);
+                        const newPdf = await PDFDocument.create();
+                        const copiedPages = await newPdf.copyPages(srcPdf, indices);
+                        copiedPages.forEach(p => newPdf.addPage(p));
+                        const bytes = await newPdf.save();
+                        const fromPage = from + 1;
+                        const toPage = to;
+                        const name = `${baseName}_p${String(fromPage).padStart(String(pageCount).length, '0')}-${String(toPage).padStart(String(pageCount).length, '0')}.pdf`;
+                        splitResults.push({ name, bytes });
+                        updateProgress(((chunk + 1) / chunkCount) * 100, `${t('split.progress.splitting')} ${chunk + 1} / ${chunkCount}`);
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+
+                renderResults();
+            } catch (e) {
+                showError(e.message || t('error.ioread'));
+                console.error(e);
+            }
+
+            splitBtn.disabled = false;
+        }
+
+        function updateProgress(pct, text) {
+            progressBar.style.width = `${Math.round(pct)}%`;
+            if (text) progressDetails.textContent = text;
+        }
+
+        function renderResults() {
+            resultsList.innerHTML = '';
+            splitResults.forEach((item, idx) => {
+                const li = document.createElement('div');
+                li.className = 'flex items-center justify-between bg-white dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700 animate-fade-in';
+                li.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-cyan-600 dark:text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12" /></svg>
+                        </div>
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">${item.name}</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">${formatBytes(item.bytes.length)}</span>
+                    </div>
+                    <button data-idx="${idx}" class="dl-btn flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition-colors flex-shrink-0 ml-3">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                        <span data-i18n="split.results.download">ダウンロード</span>
+                    </button>`;
+                resultsList.appendChild(li);
+            });
+
+            resultsList.querySelectorAll('.dl-btn').forEach(btn => {
+                btn.addEventListener('click', () => downloadSingle(parseInt(btn.dataset.idx)));
+            });
+
+            applyTranslations();
+            resultsSection.classList.remove('hidden');
+        }
+
+        function downloadSingle(idx) {
+            const { name, bytes } = splitResults[idx];
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+
+        async function downloadAll() {
+            for (let i = 0; i < splitResults.length; i++) {
+                downloadSingle(i);
+                if (i < splitResults.length - 1) await new Promise(r => setTimeout(r, 300));
+            }
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorBox.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorBox.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

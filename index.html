@@ -13,6 +13,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
     <script src="translations.js"></script>
+    <script src="utils.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -198,6 +199,12 @@
                 <a href="merge.html"
                     class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                     data-i18n="nav.merge">結合</a>
+                <a href="split.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.split">PDF分割</a>
+                <a href="compress.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.compress">PDF圧縮</a>
                 <a href="heic.html"
                     class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                     data-i18n="nav.heic">HEIC変換</a>
@@ -675,54 +682,12 @@
                 selectFolderBtn.classList.add('flex');
             }
 
-            // テーマの初期化
-            const savedTheme = localStorage.getItem('theme');
-            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-            if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
-                setTheme('dark');
-            } else {
-                setTheme('light');
-            }
-
-            // 言語の初期化
+            // テーマ・言語の初期化
+            initTheme();
             initLanguage();
         });
 
-        // --- テーマ切り替え関数 ---
-        function setTheme(theme) {
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-                updateThemeIcon('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-                updateThemeIcon('light');
-            }
-        }
-
-        function updateThemeIcon(theme) {
-            if (theme === 'dark') {
-                themeIconSun.classList.remove('hidden');
-                themeIconMoon.classList.add('hidden');
-                themeToggleBtn.classList.add('text-yellow-500', 'bg-yellow-50/10');
-                themeToggleBtn.classList.remove('text-slate-400');
-            } else {
-                themeIconSun.classList.add('hidden');
-                themeIconMoon.classList.remove('hidden');
-                themeToggleBtn.classList.remove('text-yellow-500', 'bg-yellow-50/10');
-                themeToggleBtn.classList.add('text-slate-400');
-            }
-        }
-
-
-
         // --- イベントリスナー ---
-        themeToggleBtn.addEventListener('click', () => {
-            const currentTheme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
-            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-        });
 
         selectFileBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', (e) => {
@@ -731,9 +696,7 @@
         });
         clearAllBtn.addEventListener('click', clearAllFiles);
         selectFolderBtn.addEventListener('click', handleFolderSelection);
-        dropArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.add('dragging'); });
-        dropArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragging'); });
-        dropArea.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); dropArea.classList.remove('dragging'); handleDrop(e.dataTransfer); });
+        setupDropZone(dropArea, handleDrop);
         convertBtn.addEventListener('click', handleConvertButtonClick);
         cancelPreviewBtn.addEventListener('click', () => previewModal.classList.add('hidden'));
         closePreviewBtn.addEventListener('click', () => previewModal.classList.add('hidden'));
@@ -783,23 +746,6 @@
             return size;
         }
 
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-        }
-
-        function formatTime(ms) {
-            if (ms < 1000) return t('progress.few.seconds') || '数秒';
-            const seconds = Math.round(ms / 1000);
-            if (seconds < 60) return `${seconds}${t('progress.seconds') || '秒'}`;
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            return `${minutes}${t('progress.minutes') || '分'}${remainingSeconds}${t('progress.seconds') || '秒'}`;
-        }
 
         async function handleFolderSelection() {
             if (!('showDirectoryPicker' in window)) {
@@ -1359,82 +1305,43 @@
 
                 // ページの埋め込み
                 const embeddedPage = embeddedPages[i];
-                const originalPage = pages[i];
-                let rotation = originalPage.getRotation().angle;
-                let isRotated = rotation % 180 === 90;
 
-                // 表示サイズを計算
-                let visualPageWidth = isRotated ? embeddedPage.height : embeddedPage.width;
-                let visualPageHeight = isRotated ? embeddedPage.width : embeddedPage.height;
+                // embedPages() はページの /Rotate をXObjectのMatrixに適用するため、
+                // embeddedPage.width / .height はすでに「表示上の」寸法になっている。
+                // そのため、回転に基づく width/height の入れ替えは不要。
+                let visualW = embeddedPage.width;
+                let visualH = embeddedPage.height;
+                let extraRotation = 0;
 
-                // 自動回転: セルとページの向きが異なる場合、90度回転させる
-                const autoRotate = document.getElementById('auto-rotate').checked;
-                if (autoRotate) {
+                // 自動回転: ページの向きがセルと合わない場合、追加で90度回転
+                if (document.getElementById('auto-rotate').checked) {
                     const isCellPortrait = cellHeight > cellWidth;
-                    const isPagePortrait = visualPageHeight > visualPageWidth;
-
+                    const isPagePortrait = visualH > visualW;
                     if (isCellPortrait !== isPagePortrait) {
-                        rotation = (rotation + 90) % 360;
-                        isRotated = rotation % 180 === 90;
-                        visualPageWidth = isRotated ? embeddedPage.height : embeddedPage.width;
-                        visualPageHeight = isRotated ? embeddedPage.width : embeddedPage.height;
+                        extraRotation = 90;
+                        [visualW, visualH] = [visualH, visualW];
                     }
                 }
 
-                const scale = Math.min(cellWidth / visualPageWidth, cellHeight / visualPageHeight);
+                const scale = Math.min(cellWidth / visualW, cellHeight / visualH);
+                const drawnW = embeddedPage.width * scale;
+                const drawnH = embeddedPage.height * scale;
 
-                const drawnWidth = embeddedPage.width * scale;
-                const drawnHeight = embeddedPage.height * scale;
+                // 追加回転後の表示寸法
+                const drawnVisualW = extraRotation === 90 ? drawnH : drawnW;
+                const drawnVisualH = extraRotation === 90 ? drawnW : drawnH;
 
-                // 描画されるページの表示サイズ
-                const drawnVisualWidth = isRotated ? drawnHeight : drawnWidth;
-                const drawnVisualHeight = isRotated ? drawnWidth : drawnHeight;
+                // セル内に中央配置
+                const x = cellX + (cellWidth - drawnVisualW) / 2;
+                const y = cellY + (cellHeight - drawnVisualH) / 2;
 
-                // ページをセルの中央に配置
-                const x = cellX + (cellWidth - drawnVisualWidth) / 2;
-                const y = cellY + (cellHeight - drawnVisualHeight) / 2;
+                // 90度回転時は原点を視覚ボックスの右下に調整
+                const drawX = extraRotation === 90 ? x + drawnVisualW : x;
+                const drawY = y;
 
-                // 必要に応じて回転のためにx/yを調整
-                // pdf-libのdrawPageは変換されたページの左下を基準にする？
-                // 実際には、x,y,width,heightを渡すと、pdf-libはそのボックス内で回転を処理する？
-                // いや、pdf-libは原点(x,y)を中心に回転する。
-                // x,yで回転90度で描画すると、ページはx,yから上方向に（または座標系によっては左/右に）伸びる。
-                // これは複雑になる。
-                // しかし、`embedPages`は通常、回転を正規化する？
-                // いや、`embedPages`は回転を保持する。
-                // 回転したページに`drawPage`を使用する場合、アンカーポイントを調整する必要があるかもしれない。
-                // しかし、N-upの場合、通常はセルに対して「直立」して描画したい？
-                // ユーザーが手動で回転させた場合は、回転させたい。
-                // ページが既に回転していた場合（例：横向き）、横向きとして描画したい。
-
-                // pdf-libのdrawPageがコンテンツの回転を処理すると仮定する。
-                // x,yを表示ボックスの左下として計算する場合、drawPageがx,yをどこに期待しているかを知る必要がある。
-                // 回転が90度の場合：
-                // 表示ボックス: (x,y) から (x+H, y+W)
-                // 回転90度でdrawPage(x, y)を実行すると、(x,y)から(x+W, y)に描画される[回転後]？
-                // 回転90度の場合、(x,y)は表示ボックスの右下？
-                // 回転0度: x,yは左下。
-                // 回転90度: x,yは右下？ (x+W, y)？
-                // 回転180度: x,yは右上？
-                // 回転270度: x,yは左上？
-
-                // 安全のため、`drawPage`の`rotate`オプションを使用して上書きすることもできる？
-                // いや、埋め込まれたページの回転を尊重したい。
-
-                // 回転に基づいてx,yを調整し、表示ボックスを合わせる。
-                let drawX = x;
-                let drawY = y;
-
-                if (rotation === 90) {
-                    drawX += drawnVisualWidth;
-                } else if (rotation === 180) {
-                    drawX += drawnVisualWidth;
-                    drawY += drawnVisualHeight;
-                } else if (rotation === 270) {
-                    drawY += drawnVisualHeight;
-                }
-
-                currentPage.drawPage(embeddedPage, { x: drawX, y: drawY, width: drawnWidth, height: drawnHeight, rotate: degrees(rotation) });
+                const drawOpts = { x: drawX, y: drawY, width: drawnW, height: drawnH };
+                if (extraRotation > 0) drawOpts.rotate = degrees(extraRotation);
+                currentPage.drawPage(embeddedPage, drawOpts);
                 updateProgress(((i + 1) / pageCount) * 100);
             }
 

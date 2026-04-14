@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <script src="translations.js"></script>
+    <script src="utils.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -159,6 +160,12 @@
                 <a href="merge.html"
                     class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
                     data-i18n="nav.merge">結合</a>
+                <a href="split.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.split">PDF分割</a>
+                <a href="compress.html"
+                    class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                    data-i18n="nav.compress">PDF圧縮</a>
                 <a href="heic.html"
                     class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-lg shadow-fuchsia-500/20"
                     data-i18n="nav.heic">HEIC変換</a>
@@ -368,34 +375,8 @@
 
         // --- 初期化 ---
         document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('theme');
-            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (savedTheme === 'dark' || (!savedTheme && systemDark)) {
-                setTheme('dark');
-            } else {
-                setTheme('light');
-            }
+            initTheme();
             initLanguage();
-        });
-
-        // --- テーマ ---
-        function setTheme(theme) {
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-                themeIconSun.classList.remove('hidden');
-                themeIconMoon.classList.add('hidden');
-            } else {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-                themeIconSun.classList.add('hidden');
-                themeIconMoon.classList.remove('hidden');
-            }
-        }
-
-        themeToggleBtn.addEventListener('click', () => {
-            const currentTheme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
-            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
         });
 
         // --- イベントリスナー ---
@@ -406,23 +387,7 @@
         });
         clearAllBtn.addEventListener('click', clearAllFiles);
         convertBtn.addEventListener('click', convertFiles);
-
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropArea.classList.add('dragging');
-        });
-        dropArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropArea.classList.remove('dragging');
-        });
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropArea.classList.remove('dragging');
-            handleFileSelection(e.dataTransfer.files);
-        });
+        setupDropZone(dropArea, (dt) => handleFileSelection(dt.files));
 
         // --- ファイル操作 ---
         function handleFileSelection(fileList) {
@@ -452,15 +417,6 @@
             renderFileList();
             resultsSection.classList.add('hidden');
             resultsGrid.innerHTML = '';
-        }
-
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
         }
 
         function renderFileList() {

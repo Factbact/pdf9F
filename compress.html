@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF圧縮ツール</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <script src="translations.js"></script>
+    <script src="utils.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '"Outfit"', 'sans-serif'],
+                        heading: ['"Outfit"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe', 300: '#c4b5fd',
+                            400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9',
+                            800: '#5b21b6', 900: '#4c1d95',
+                        },
+                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155' }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        h1,h2,h3,h4,h5,h6 { font-family: 'Outfit', sans-serif; }
+        .glass-card {
+            background: rgba(255,255,255,0.8); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.07);
+        }
+        .dark .glass-card {
+            background: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.2);
+        }
+        .text-gradient {
+            background-clip: text; -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-image: linear-gradient(to right, #8b5cf6, #7c3aed);
+        }
+        .dark .text-gradient { background-image: linear-gradient(to right, #a78bfa, #8b5cf6); }
+        .file-drop-area {
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23CBD5E1FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+        .dark .file-drop-area {
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23475569FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+        .file-drop-area.dragging {
+            background-color: rgba(139,92,246,0.1); transform: scale(1.01);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%238B5CF6FF' stroke-width='3' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-dark-bg text-slate-800 dark:text-slate-200 font-sans antialiased transition-colors duration-300 min-h-screen selection:bg-violet-500 selection:text-white">
+
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-violet-400/20 blur-[100px] dark:bg-violet-900/20"></div>
+        <div class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] rounded-full bg-purple-400/20 blur-[100px] dark:bg-purple-900/20"></div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <header class="flex flex-col gap-4 mb-10 py-4 animate-fade-in">
+            <nav class="flex justify-center gap-2 flex-wrap">
+                <a href="index.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.nup">面付け</a>
+                <a href="merge.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.merge">結合</a>
+                <a href="split.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.split">PDF分割</a>
+                <a href="compress.html" class="px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/20" data-i18n="nav.compress">PDF圧縮</a>
+                <a href="heic.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.heic">HEIC変換</a>
+                <a href="img2pdf.html" class="px-4 py-2 rounded-full text-sm font-bold bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors" data-i18n="nav.img2pdf">画像→PDF</a>
+            </nav>
+            <div class="flex justify-between items-center">
+                <div class="text-left">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30 text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight" data-i18n="compress.title">PDF<span class="text-gradient">圧縮</span>ツール</h1>
+                            <p class="text-xs md:text-sm font-medium text-slate-500 dark:text-slate-400" data-i18n="compress.subtitle">PDF Compress Tool</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm p-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <button id="lang-toggle-btn" class="p-3 rounded-full text-lg hover:bg-violet-50 dark:hover:bg-slate-700 transition-all" aria-label="言語切り替え" onclick="toggleLanguage()">🇺🇸</button>
+                    <button id="theme-toggle-btn" class="p-3 rounded-full text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-slate-700 transition-all" aria-label="テーマ切り替え">
+                        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+                        </svg>
+                        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="glass-card rounded-3xl p-6 md:p-10 space-y-12 animate-slide-up">
+
+            <!-- 1. ファイル選択 -->
+            <section>
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span class="bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-violet-500/20">1</span>
+                    <span data-i18n="compress.step1.title">PDFファイルを選択</span>
+                </h2>
+                <div id="drop-area" class="file-drop-area border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-10 text-center cursor-pointer bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 group relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div class="relative z-10 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-6 rounded-full bg-violet-50 dark:bg-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <svg class="w-10 h-10 text-violet-500 dark:text-violet-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                            </svg>
+                        </div>
+                        <p class="text-lg text-slate-700 dark:text-slate-300 font-bold mb-2" data-i18n="compress.drop.title">PDFファイルをここにドラッグ＆ドロップ</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6" data-i18n="compress.drop.subtitle">または、ボタンから選択してください</p>
+                        <button id="select-file-btn" class="flex items-center justify-center gap-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transform hover:-translate-y-0.5 transition-all duration-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span data-i18n="common.btn.addfile">ファイルを追加</span>
+                        </button>
+                        <input type="file" id="file-input" class="hidden" accept=".pdf" multiple>
+                    </div>
+                </div>
+
+                <!-- ファイルリスト -->
+                <div id="file-list-area" class="hidden mt-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                            <span data-i18n="common.selected">選択中のファイル</span>:
+                            <span id="file-count" class="text-violet-600 dark:text-violet-400 font-bold">0</span>
+                        </p>
+                        <button id="clear-btn" class="text-xs text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 transition-colors font-medium" data-i18n="common.btn.clearall">すべてクリア</button>
+                    </div>
+                    <div id="file-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                </div>
+            </section>
+
+            <!-- 2. 圧縮設定 -->
+            <section id="settings-section" class="hidden">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span class="bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-violet-500/20">2</span>
+                    <span data-i18n="compress.step2.title">圧縮設定</span>
+                </h2>
+                <div class="bg-slate-50/80 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-5">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3" data-i18n="compress.quality.label">画質</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <label class="flex items-start gap-3 p-4 bg-white dark:bg-slate-700/50 rounded-xl border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:border-violet-400 dark:hover:border-violet-500 transition-all has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50 dark:has-[:checked]:bg-violet-900/20">
+                                <input type="radio" name="compress-quality" value="screen" class="mt-0.5 accent-violet-500">
+                                <div>
+                                    <span class="block font-semibold text-slate-700 dark:text-slate-200 text-sm" data-i18n="compress.quality.screen">低画質（最小サイズ / 72 dpi）</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 p-4 bg-white dark:bg-slate-700/50 rounded-xl border-2 border-violet-500 bg-violet-50 dark:bg-violet-900/20 dark:border-violet-500 cursor-pointer hover:border-violet-400 dark:hover:border-violet-500 transition-all has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50 dark:has-[:checked]:bg-violet-900/20">
+                                <input type="radio" name="compress-quality" value="ebook" checked class="mt-0.5 accent-violet-500">
+                                <div>
+                                    <span class="block font-semibold text-slate-700 dark:text-slate-200 text-sm" data-i18n="compress.quality.ebook">中画質（スクリーン表示 / 120 dpi）</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 p-4 bg-white dark:bg-slate-700/50 rounded-xl border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:border-violet-400 dark:hover:border-violet-500 transition-all has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50 dark:has-[:checked]:bg-violet-900/20">
+                                <input type="radio" name="compress-quality" value="printer" class="mt-0.5 accent-violet-500">
+                                <div>
+                                    <span class="block font-semibold text-slate-700 dark:text-slate-200 text-sm" data-i18n="compress.quality.printer">高画質（印刷用 / 150 dpi）</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 p-4 bg-white dark:bg-slate-700/50 rounded-xl border-2 border-slate-200 dark:border-slate-600 cursor-pointer hover:border-violet-400 dark:hover:border-violet-500 transition-all has-[:checked]:border-violet-500 has-[:checked]:bg-violet-50 dark:has-[:checked]:bg-violet-900/20">
+                                <input type="radio" name="compress-quality" value="prepress" class="mt-0.5 accent-violet-500">
+                                <div>
+                                    <span class="block font-semibold text-slate-700 dark:text-slate-200 text-sm" data-i18n="compress.quality.prepress">最高画質（業務用 / 200 dpi）</span>
+                                </div>
+                            </label>
+                        </div>
+                        <p class="mt-3 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2" data-i18n="compress.quality.note">※ PDF内の画像をJPEGに変換します。テキスト主体のPDFは逆に大きくなる場合があります。</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 実行 -->
+            <section id="execute-section" class="hidden">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span class="bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-violet-500/20">3</span>
+                    <span data-i18n="compress.step3.title">実行</span>
+                </h2>
+                <button id="compress-btn" class="w-full group relative flex items-center justify-center gap-3 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 transition-all duration-300 overflow-hidden">
+                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                    </svg>
+                    <span class="relative z-10 text-lg" data-i18n="compress.btn">PDF圧縮を実行</span>
+                </button>
+            </section>
+
+            <!-- 4. 進捗 -->
+            <section id="progress-section" class="hidden animate-fade-in">
+                <h2 class="text-xl font-bold mb-6 flex items-center text-slate-800 dark:text-white">
+                    <span class="bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-violet-500/20">4</span>
+                    <span data-i18n="compress.step4.title">進捗状況</span>
+                </h2>
+                <div id="progress-details" class="text-sm text-center text-slate-600 dark:text-slate-400 mb-4 font-medium"></div>
+                <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 overflow-hidden mb-2">
+                    <div id="progress-bar" class="bg-gradient-to-r from-violet-500 to-purple-600 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div id="progress-file-info" class="text-xs text-center text-slate-500 dark:text-slate-400 mt-2"></div>
+            </section>
+
+            <!-- 結果 -->
+            <section id="results-section" class="hidden animate-fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white" data-i18n="compress.step4.title">圧縮結果</h3>
+                    <button id="download-all-btn" class="flex items-center gap-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-bold py-2 px-5 rounded-xl text-sm transition-all shadow-md shadow-violet-500/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        <span data-i18n="split.results.downloadall">すべてダウンロード</span>
+                    </button>
+                </div>
+                <div id="results-list" class="space-y-3 max-h-[32rem] overflow-y-auto"></div>
+
+                <!-- 合計サマリー -->
+                <div id="summary-area" class="hidden mt-4 p-4 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl">
+                    <div class="flex flex-wrap gap-4 justify-around text-center">
+                        <div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="progress.total.input">入力合計</p>
+                            <p id="summary-original" class="text-lg font-bold text-slate-800 dark:text-white"></p>
+                        </div>
+                        <div class="flex items-center text-slate-400">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="progress.total.output">出力合計</p>
+                            <p id="summary-compressed" class="text-lg font-bold text-slate-800 dark:text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mb-1" data-i18n="compress.results.reduction">削減率</p>
+                            <p id="summary-reduction" class="text-lg font-bold text-violet-600 dark:text-violet-400"></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- エラー -->
+            <div id="error-box" class="hidden mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl flex items-start gap-3 animate-fade-in">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p id="error-message" class="font-medium"></p>
+            </div>
+        </main>
+
+        <footer class="text-center mt-12 text-sm text-slate-500 dark:text-slate-400 font-medium">
+            <p>&copy; 2024 PDF Tools. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        const { PDFDocument } = PDFLib;
+
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const selectFileBtn = document.getElementById('select-file-btn');
+        const fileListArea = document.getElementById('file-list-area');
+        const fileList = document.getElementById('file-list');
+        const fileCount = document.getElementById('file-count');
+        const clearBtn = document.getElementById('clear-btn');
+        const settingsSection = document.getElementById('settings-section');
+        const executeSection = document.getElementById('execute-section');
+        const compressBtn = document.getElementById('compress-btn');
+        const progressSection = document.getElementById('progress-section');
+        const progressBar = document.getElementById('progress-bar');
+        const progressDetails = document.getElementById('progress-details');
+        const progressFileInfo = document.getElementById('progress-file-info');
+        const resultsSection = document.getElementById('results-section');
+        const resultsList = document.getElementById('results-list');
+        const downloadAllBtn = document.getElementById('download-all-btn');
+        const summaryArea = document.getElementById('summary-area');
+        const summaryOriginal = document.getElementById('summary-original');
+        const summaryCompressed = document.getElementById('summary-compressed');
+        const summaryReduction = document.getElementById('summary-reduction');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
+
+        const qualitySettings = {
+            screen:   { dpi: 72,  jpegQuality: 0.50 },
+            ebook:    { dpi: 120, jpegQuality: 0.65 },
+            printer:  { dpi: 150, jpegQuality: 0.82 },
+            prepress: { dpi: 200, jpegQuality: 0.92 },
+        };
+
+        let selectedFiles = [];
+        let compressResults = []; // { name, originalSize, bytes }[]
+
+        // --- 初期化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initLanguage();
+        });
+
+        // --- イベントリスナー ---
+        selectFileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFileSelection(e.target.files);
+            fileInput.value = '';
+        });
+        setupDropZone(dropArea, (dt) => {
+            const pdfs = Array.from(dt.files).filter(f => f.type === 'application/pdf');
+            if (pdfs.length > 0) handleFileSelection(pdfs);
+            else showError(t('compress.error.nopdf'));
+        });
+        clearBtn.addEventListener('click', clearAll);
+        compressBtn.addEventListener('click', runCompress);
+        downloadAllBtn.addEventListener('click', downloadAll);
+
+        // --- ファイル処理 ---
+        function handleFileSelection(files) {
+            hideError();
+            const pdfs = Array.from(files).filter(f => f.type === 'application/pdf');
+            if (pdfs.length === 0) { showError(t('compress.error.nopdf')); return; }
+
+            selectedFiles = [...selectedFiles, ...pdfs];
+            renderFileList();
+            settingsSection.classList.remove('hidden');
+            executeSection.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            resultsList.innerHTML = '';
+            compressResults = [];
+        }
+
+        function renderFileList() {
+            fileList.innerHTML = '';
+            fileCount.textContent = selectedFiles.length;
+            selectedFiles.forEach((file, idx) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between bg-white dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700';
+                div.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12" /></svg>
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">${file.name}</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">${formatBytes(file.size)}</p>
+                        </div>
+                    </div>
+                    <button data-idx="${idx}" class="rm-btn ml-3 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>`;
+                fileList.appendChild(div);
+            });
+
+            fileList.querySelectorAll('.rm-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectedFiles.splice(parseInt(btn.dataset.idx), 1);
+                    renderFileList();
+                    if (selectedFiles.length === 0) clearAll();
+                });
+            });
+
+            fileListArea.classList.toggle('hidden', selectedFiles.length === 0);
+        }
+
+        function clearAll() {
+            selectedFiles = [];
+            compressResults = [];
+            fileList.innerHTML = '';
+            fileListArea.classList.add('hidden');
+            settingsSection.classList.add('hidden');
+            executeSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            progressSection.classList.add('hidden');
+            hideError();
+        }
+
+        // --- 圧縮実行 ---
+        async function runCompress() {
+            if (selectedFiles.length === 0) { showError(t('compress.error.nopdf')); return; }
+
+            hideError();
+            compressResults = [];
+            resultsList.innerHTML = '';
+            resultsSection.classList.add('hidden');
+            summaryArea.classList.add('hidden');
+            progressSection.classList.remove('hidden');
+            compressBtn.disabled = true;
+
+            const quality = document.querySelector('input[name="compress-quality"]:checked').value;
+            const { dpi, jpegQuality } = qualitySettings[quality];
+            const scale = dpi / 72;
+
+            const totalFiles = selectedFiles.length;
+
+            try {
+                for (let fi = 0; fi < totalFiles; fi++) {
+                    const file = selectedFiles[fi];
+                    const fileBasePct = (fi / totalFiles) * 100;
+                    const fileSharePct = 100 / totalFiles;
+
+                    progressFileInfo.textContent = `${fi + 1} / ${totalFiles}  —  ${file.name}`;
+                    updateProgress(fileBasePct, `${t('compress.progress.rendering')} (${fi + 1}/${totalFiles})`);
+
+                    const arrayBuffer = await file.arrayBuffer();
+
+                    // pdf.js でページレンダリング
+                    const pdfJsDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const pageCount = pdfJsDoc.numPages;
+
+                    const newPdf = await PDFDocument.create();
+
+                    for (let pi = 0; pi < pageCount; pi++) {
+                        const page = await pdfJsDoc.getPage(pi + 1);
+
+                        // scale=1 でポイント単位の寸法を取得
+                        const viewport1 = page.getViewport({ scale: 1 });
+                        const pointWidth = viewport1.width;
+                        const pointHeight = viewport1.height;
+
+                        // target DPI でレンダリング
+                        const viewport = page.getViewport({ scale });
+                        const canvas = document.createElement('canvas');
+                        canvas.width = Math.round(viewport.width);
+                        canvas.height = Math.round(viewport.height);
+                        const ctx = canvas.getContext('2d');
+                        await page.render({ canvasContext: ctx, viewport }).promise;
+
+                        // JPEG エンコード
+                        const jpegDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);
+                        const jpegBase64 = jpegDataUrl.split(',')[1];
+                        const jpegBytes = Uint8Array.from(atob(jpegBase64), c => c.charCodeAt(0));
+
+                        // pdf-lib に埋め込み
+                        const jpegImage = await newPdf.embedJpg(jpegBytes);
+                        const newPage = newPdf.addPage([pointWidth, pointHeight]);
+                        newPage.drawImage(jpegImage, {
+                            x: 0,
+                            y: 0,
+                            width: pointWidth,
+                            height: pointHeight,
+                        });
+
+                        const pagePct = ((pi + 1) / pageCount) * fileSharePct;
+                        updateProgress(fileBasePct + pagePct, `${t('compress.progress.rendering')} (${fi + 1}/${totalFiles}) — ${pi + 1}/${pageCount}`);
+                        await new Promise(r => setTimeout(r, 0)); // UI更新
+                    }
+
+                    updateProgress(fileBasePct + fileSharePct * 0.9, `${t('compress.progress.saving')} (${fi + 1}/${totalFiles})`);
+                    const bytes = await newPdf.save();
+
+                    const baseName = file.name.replace(/\.pdf$/i, '');
+                    compressResults.push({
+                        name: `${baseName}_compressed.pdf`,
+                        originalSize: file.size,
+                        bytes,
+                    });
+                    updateProgress(fileBasePct + fileSharePct, `${t('compress.progress.done')} (${fi + 1}/${totalFiles})`);
+                }
+
+                updateProgress(100, t('compress.progress.done'));
+                renderResults();
+
+            } catch (e) {
+                showError(e.message || t('error.ioread'));
+                console.error(e);
+            }
+
+            compressBtn.disabled = false;
+        }
+
+        function updateProgress(pct, text) {
+            progressBar.style.width = `${Math.min(100, Math.round(pct))}%`;
+            if (text) progressDetails.textContent = text;
+        }
+
+        function renderResults() {
+            resultsList.innerHTML = '';
+
+            let totalOriginal = 0;
+            let totalCompressed = 0;
+
+            compressResults.forEach((item, idx) => {
+                totalOriginal += item.originalSize;
+                totalCompressed += item.bytes.length;
+
+                const reduction = item.originalSize > 0
+                    ? Math.round((1 - item.bytes.length / item.originalSize) * 100)
+                    : 0;
+                const reductionColor = reduction > 0
+                    ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800'
+                    : 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800';
+
+                const div = document.createElement('div');
+                div.className = 'bg-white dark:bg-slate-700/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700 animate-fade-in';
+                div.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
+                            <div class="w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12" /></svg>
+                            </div>
+                            <div class="overflow-hidden">
+                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">${item.name}</p>
+                                <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">${formatBytes(item.originalSize)}</span>
+                                    <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">${formatBytes(item.bytes.length)}</span>
+                                    <span class="text-xs font-bold px-1.5 py-0.5 rounded border ${reductionColor}">
+                                        ${reduction > 0 ? '-' : '+'}${Math.abs(reduction)}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <button data-idx="${idx}" class="dl-btn flex items-center gap-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors flex-shrink-0">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                            <span data-i18n="split.results.download">ダウンロード</span>
+                        </button>
+                    </div>`;
+                resultsList.appendChild(div);
+            });
+
+            resultsList.querySelectorAll('.dl-btn').forEach(btn => {
+                btn.addEventListener('click', () => downloadSingle(parseInt(btn.dataset.idx)));
+            });
+
+            // サマリー
+            if (compressResults.length > 1) {
+                const totalReduction = totalOriginal > 0
+                    ? Math.round((1 - totalCompressed / totalOriginal) * 100)
+                    : 0;
+                summaryOriginal.textContent = formatBytes(totalOriginal);
+                summaryCompressed.textContent = formatBytes(totalCompressed);
+                summaryReduction.textContent = `${totalReduction > 0 ? '-' : '+'}${Math.abs(totalReduction)}%`;
+                summaryArea.classList.remove('hidden');
+            }
+
+            applyTranslations();
+            resultsSection.classList.remove('hidden');
+        }
+
+        function downloadSingle(idx) {
+            const { name, bytes } = compressResults[idx];
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+
+        async function downloadAll() {
+            for (let i = 0; i < compressResults.length; i++) {
+                downloadSingle(i);
+                if (i < compressResults.length - 1) await new Promise(r => setTimeout(r, 300));
+            }
+        }
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorBox.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorBox.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
