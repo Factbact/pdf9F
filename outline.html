@@ -210,6 +210,29 @@
                 <p class="mb-4 text-sm text-slate-500 dark:text-slate-400">
                     次の同階層見出しの直前までを同じセクションとして扱い、PDFのページ順も連動して並び替えます。
                 </p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                    <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/60 px-4 py-3">
+                        <p class="text-[11px] font-semibold tracking-[0.18em] text-slate-400 dark:text-slate-500">OUTLINE ITEMS</p>
+                        <div class="mt-2 flex items-end gap-2">
+                            <span id="stat-total-items" class="text-2xl font-bold text-slate-900 dark:text-white">0</span>
+                            <span class="pb-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">項目</span>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/80 dark:bg-blue-950/20 px-4 py-3">
+                        <p class="text-[11px] font-semibold tracking-[0.18em] text-blue-500/70 dark:text-blue-400/70">MOVABLE SECTIONS</p>
+                        <div class="mt-2 flex items-end gap-2">
+                            <span id="stat-section-count" class="text-2xl font-bold text-slate-900 dark:text-white">0</span>
+                            <span class="pb-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">セクション</span>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/20 px-4 py-3">
+                        <p class="text-[11px] font-semibold tracking-[0.18em] text-amber-600/70 dark:text-amber-400/70">TOTAL PAGES</p>
+                        <div class="mt-2 flex items-end gap-2">
+                            <span id="stat-page-count" class="text-2xl font-bold text-slate-900 dark:text-white">0</span>
+                            <span class="pb-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">ページ</span>
+                        </div>
+                    </div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- 現在の順序 -->
                     <div
@@ -218,8 +241,6 @@
                             class="px-4 py-3 bg-slate-50 dark:bg-slate-700 border-b border-slate-200 dark:border-slate-600 flex items-center gap-2">
                             <span class="w-2.5 h-2.5 rounded-full bg-red-400 flex-shrink-0"></span>
                             <span class="text-sm font-bold text-slate-600 dark:text-slate-300">現在の順序</span>
-                            <span id="item-count"
-                                class="ml-auto text-xs text-slate-500 dark:text-slate-400 font-medium"></span>
                         </div>
                         <ul id="outline-before"
                             class="divide-y divide-slate-100 dark:divide-slate-700 max-h-80 overflow-y-auto text-sm">
@@ -301,7 +322,9 @@
         const actionSection   = document.getElementById('action-section');
         const outlineBefore   = document.getElementById('outline-before');
         const outlineAfter    = document.getElementById('outline-after');
-        const itemCount       = document.getElementById('item-count');
+        const statTotalItems  = document.getElementById('stat-total-items');
+        const statSectionCount = document.getElementById('stat-section-count');
+        const statPageCount   = document.getElementById('stat-page-count');
         const sortBtn         = document.getElementById('sort-btn');
         const sortBtnLabel    = document.getElementById('sort-btn-label');
         const errorBox        = document.getElementById('error-box');
@@ -716,7 +739,11 @@
             renderList(outlineAfter, sorted, 0, 'reorderedPageRangeLabel');
 
             const total = countAll(items);
-            itemCount.textContent = `全${total}項目`;
+            const sections = countSections(items);
+            const pageCount = loadedPreview?.pageCount;
+            statTotalItems.textContent = String(total);
+            statSectionCount.textContent = String(sections);
+            statPageCount.textContent = Number.isInteger(pageCount) ? String(pageCount) : '-';
         }
 
         function renderList(container, items, depth, rangeKey) {
@@ -751,6 +778,15 @@
 
         function countAll(items) {
             return items.reduce((n, item) => n + 1 + countAll(item.children), 0);
+        }
+
+        function countSections(items) {
+            return items.reduce((n, item) => {
+                const hasSectionRange = Number.isInteger(item.sectionStart)
+                    && Number.isInteger(item.sectionEnd)
+                    && item.sectionEnd > item.sectionStart;
+                return n + (hasSectionRange ? 1 : 0) + countSections(item.children);
+            }, 0);
         }
 
         // ----------------------------------------------------------------
