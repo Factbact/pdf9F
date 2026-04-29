@@ -402,6 +402,60 @@
                 </div>
             </section>
 
+            <!-- 5. アウトライン整理 -->
+            <section id="outline-editor-section" class="hidden animate-fade-in">
+                <h2 class="text-xl font-bold mb-2 flex items-center text-slate-800 dark:text-white">
+                    <span
+                        class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl h-10 w-10 text-lg flex items-center justify-center mr-4 shadow-lg shadow-emerald-500/20">5</span>
+                    <span data-i18n="merge.step5.title">アウトライン整理</span>
+                </h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4 ml-14" data-i18n="merge.step5.desc">ドラッグで並び替え、クリックでタイトル編集、ボタンで階層変更・削除ができます。</p>
+
+                <!-- 自動整理ツールバー -->
+                <div class="flex flex-wrap gap-2 mb-3 ml-14">
+                    <button id="sort-natural-btn"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+                        <span data-i18n="merge.step5.sort.natural">番号順に整列</span>
+                    </button>
+                    <button id="sort-page-btn"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <span data-i18n="merge.step5.sort.page">ページ順に整列</span>
+                    </button>
+                    <button id="auto-nest-btn"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h12M4 14h8M4 18h4"/></svg>
+                        <span data-i18n="merge.step5.auto.nest">自動で階層整理</span>
+                    </button>
+                    <button id="flatten-all-btn"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                        <span data-i18n="merge.step5.flatten">すべてフラット化</span>
+                    </button>
+                </div>
+
+                <div id="outline-editor-list" class="space-y-1 max-h-[480px] overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 p-3"></div>
+
+                <div id="outline-editor-empty" class="hidden text-center text-slate-400 dark:text-slate-500 py-8 text-sm">
+                    <span data-i18n="merge.step5.empty">アウトラインがありません（設定でアウトラインをオンにしてください）</span>
+                </div>
+
+                <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                    <button id="download-no-outline-btn"
+                        class="flex-1 flex items-center justify-center gap-2 py-3 px-5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 font-semibold transition-all text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span data-i18n="merge.step5.dl.nooutline">アウトラインなしでダウンロード</span>
+                    </button>
+                    <button id="download-with-outline-btn"
+                        class="flex-1 group relative flex items-center justify-center gap-2 py-3 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all overflow-hidden">
+                        <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span class="relative z-10" data-i18n="merge.step5.dl.withoutline">このアウトラインでダウンロード</span>
+                    </button>
+                </div>
+            </section>
+
             <!-- エラー表示 -->
             <div id="error-box"
                 class="hidden mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl flex items-start gap-3 animate-fade-in">
@@ -443,9 +497,20 @@
         const addOutlinesCheckbox = document.getElementById('add-outlines');
         const groupByFileCheckbox = document.getElementById('group-by-file');
         const groupByFileOption = document.getElementById('group-by-file-option');
+        const outlineEditorSection = document.getElementById('outline-editor-section');
+        const outlineEditorList = document.getElementById('outline-editor-list');
+        const outlineEditorEmpty = document.getElementById('outline-editor-empty');
+        const downloadNoOutlineBtn = document.getElementById('download-no-outline-btn');
+        const downloadWithOutlineBtn = document.getElementById('download-with-outline-btn');
 
         let selectedFiles = [];
         let draggedItem = null;
+
+        // ステップ5用：結合済みPDFとアウトラインデータを保持
+        let pendingMergedPdf = null;
+        let pendingOutlineData = [];
+        let editFlatItems = []; // [{id, title, pageIndex, depth}]
+        let outlineDragSrcIndex = null;
 
         // --- 初期化 ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -457,6 +522,13 @@
         addOutlinesCheckbox.addEventListener('change', () => {
             groupByFileOption.style.display = addOutlinesCheckbox.checked ? '' : 'none';
         });
+
+        downloadNoOutlineBtn.addEventListener('click', () => finalizeAndDownload(false));
+        downloadWithOutlineBtn.addEventListener('click', () => finalizeAndDownload(true));
+        document.getElementById('sort-natural-btn').addEventListener('click', sortOutlineByNatural);
+        document.getElementById('sort-page-btn').addEventListener('click', sortOutlineByPage);
+        document.getElementById('auto-nest-btn').addEventListener('click', autoNestOutline);
+        document.getElementById('flatten-all-btn').addEventListener('click', flattenOutline);
 
         // --- イベントリスナー ---
         selectFileBtn.addEventListener('click', () => fileInput.click());
@@ -719,28 +791,12 @@
                     progressBar.style.width = `${((i + 1) / total) * 100}%`;
                 }
 
-                // アウトライン（しおり）を追加
-                if (addOutlinesCheckbox.checked && outlineData.length > 0) {
-                    progressDetails.textContent = t('progress.outline');
-                    await addOutlinesToPdf(mergedPdf, outlineData);
-                }
-
-                progressDetails.textContent = t('progress.generating');
-                const mergedPdfBytes = await mergedPdf.save();
-
-                // ダウンロード
-                const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                const filename = outputFilenameInput.value.trim() || 'merged';
-                a.download = filename.endsWith('.pdf') ? filename : filename + '.pdf';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
                 progressDetails.textContent = `${t('progress.done')} ${mergedPdf.getPageCount()}${t('progress.pages')}`;
+
+                // 結合結果とアウトラインデータを保持してステップ5へ
+                pendingMergedPdf = mergedPdf;
+                pendingOutlineData = addOutlinesCheckbox.checked ? outlineData : [];
+                showOutlineEditor();
 
             } catch (error) {
                 showError(error.message);
@@ -757,6 +813,276 @@
 
         function hideError() {
             errorBox.classList.add('hidden');
+        }
+
+        // ================================================================
+        // アウトラインエディタ（ステップ5）
+        // ================================================================
+
+        // ツリー → フラット配列
+        function treeToFlat(items, depth = 0) {
+            const result = [];
+            for (const item of items) {
+                result.push({ id: crypto.randomUUID(), title: item.title, pageIndex: item.pageIndex, depth });
+                if (item.children && item.children.length > 0) {
+                    result.push(...treeToFlat(item.children, depth + 1));
+                }
+            }
+            return result;
+        }
+
+        // フラット配列 → ツリー
+        function flatToTree(flatItems) {
+            const root = [];
+            const stack = [{ node: { children: root }, depth: -1 }];
+            for (const item of flatItems) {
+                while (stack.length > 1 && stack[stack.length - 1].depth >= item.depth) stack.pop();
+                const node = { title: item.title, pageIndex: item.pageIndex, children: [] };
+                stack[stack.length - 1].node.children.push(node);
+                stack.push({ node, depth: item.depth });
+            }
+            return root;
+        }
+
+        // アイテムindexから「そのアイテム＋子孫」のインデックス範囲を返す
+        function subtreeRange(flatItems, startIdx) {
+            const depth = flatItems[startIdx].depth;
+            let end = startIdx + 1;
+            while (end < flatItems.length && flatItems[end].depth > depth) end++;
+            return { start: startIdx, end }; // [start, end)
+        }
+
+        // --- 自動整理ボタン ---
+
+        function sortTreeNaturally(items) {
+            items.sort((a, b) => a.title.localeCompare(b.title, 'ja', { numeric: true, sensitivity: 'base' }));
+            items.forEach(item => sortTreeNaturally(item.children));
+            return items;
+        }
+
+        function sortTreeByPage(items) {
+            items.sort((a, b) => (a.pageIndex ?? Infinity) - (b.pageIndex ?? Infinity));
+            items.forEach(item => sortTreeByPage(item.children));
+            return items;
+        }
+
+        function detectDepthFromTitle(title) {
+            // "1.2.3 Title" → ドットの数 = depth
+            const dotNum = title.match(/^(\d+(?:\.\d+)+)\s/);
+            if (dotNum) return (dotNum[1].match(/\./g) || []).length;
+            // "1. Title" or "1 Title" → depth 0
+            if (/^\d+[.\s]/.test(title)) return 0;
+            // 日本語: 章→0, 節→1, 項→2
+            if (/^第?\d+章/.test(title)) return 0;
+            if (/^第?\d+節/.test(title)) return 1;
+            if (/^第?\d+項/.test(title)) return 2;
+            // 漢数字
+            if (/^[一二三四五六七八九十百]+章/.test(title)) return 0;
+            if (/^[一二三四五六七八九十百]+節/.test(title)) return 1;
+            // (1) (1.1) スタイル
+            const paren = title.match(/^\((\d+(?:\.\d+)*)\)/);
+            if (paren) return (paren[1].match(/\./g) || []).length;
+            return null;
+        }
+
+        function sortOutlineByNatural() {
+            const tree = flatToTree(editFlatItems);
+            sortTreeNaturally(tree);
+            editFlatItems = treeToFlat(tree);
+            renderOutlineEditor();
+        }
+
+        function sortOutlineByPage() {
+            const tree = flatToTree(editFlatItems);
+            sortTreeByPage(tree);
+            editFlatItems = treeToFlat(tree);
+            renderOutlineEditor();
+        }
+
+        function autoNestOutline() {
+            editFlatItems = editFlatItems.map(item => {
+                const detected = detectDepthFromTitle(item.title);
+                return detected !== null ? { ...item, depth: detected } : item;
+            });
+            renderOutlineEditor();
+        }
+
+        function flattenOutline() {
+            editFlatItems = editFlatItems.map(item => ({ ...item, depth: 0 }));
+            renderOutlineEditor();
+        }
+
+        function showOutlineEditor() {
+            editFlatItems = treeToFlat(pendingOutlineData);
+            outlineEditorSection.classList.remove('hidden');
+            outlineEditorSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            renderOutlineEditor();
+        }
+
+        function renderOutlineEditor() {
+            outlineEditorList.innerHTML = '';
+
+            if (editFlatItems.length === 0) {
+                outlineEditorList.classList.add('hidden');
+                outlineEditorEmpty.classList.remove('hidden');
+                downloadWithOutlineBtn.disabled = true;
+                downloadWithOutlineBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+
+            outlineEditorList.classList.remove('hidden');
+            outlineEditorEmpty.classList.add('hidden');
+            downloadWithOutlineBtn.disabled = false;
+            downloadWithOutlineBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            editFlatItems.forEach((item, idx) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-1 p-2 rounded-xl bg-white dark:bg-slate-700/60 border border-slate-100 dark:border-slate-700 group hover:border-emerald-300 dark:hover:border-emerald-700 transition-all';
+                li.draggable = true;
+                li.dataset.idx = idx;
+                li.style.marginLeft = `${item.depth * 24}px`;
+
+                li.innerHTML = `
+                    <span class="outline-drag-handle cursor-grab text-slate-300 dark:text-slate-500 hover:text-slate-500 px-1 flex-shrink-0 select-none text-base leading-none" title="ドラッグで並び替え">⠿</span>
+                    <button class="outdent-btn flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors ${item.depth === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="一段上げる" ${item.depth === 0 ? 'disabled' : ''}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                    <button class="indent-btn flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors ${idx === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="一段下げる" ${idx === 0 ? 'disabled' : ''}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                    <span class="outline-title flex-1 text-sm text-slate-700 dark:text-slate-200 truncate cursor-pointer px-1 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors" title="クリックして編集">${escapeHtml(item.title)}</span>
+                    <span class="flex-shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-400">${item.pageIndex !== null ? 'p' + (item.pageIndex + 1) : '—'}</span>
+                    <button class="delete-btn flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="削除">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                `;
+
+                // タイトル編集（クリック）
+                const titleEl = li.querySelector('.outline-title');
+                titleEl.addEventListener('click', () => startTitleEdit(titleEl, idx));
+
+                // インデント/アウトデント
+                li.querySelector('.outdent-btn').addEventListener('click', () => { outdentItem(idx); });
+                li.querySelector('.indent-btn').addEventListener('click', () => { indentItem(idx); });
+
+                // 削除
+                li.querySelector('.delete-btn').addEventListener('click', () => { deleteOutlineItem(idx); });
+
+                // ドラッグ
+                li.addEventListener('dragstart', (e) => {
+                    outlineDragSrcIndex = idx;
+                    e.dataTransfer.effectAllowed = 'move';
+                    li.classList.add('opacity-50');
+                });
+                li.addEventListener('dragend', () => li.classList.remove('opacity-50'));
+                li.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+                li.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (outlineDragSrcIndex === null || outlineDragSrcIndex === idx) return;
+                    moveOutlineSubtree(outlineDragSrcIndex, idx);
+                    outlineDragSrcIndex = null;
+                });
+
+                outlineEditorList.appendChild(li);
+            });
+        }
+
+        function startTitleEdit(titleEl, idx) {
+            const current = editFlatItems[idx].title;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = current;
+            input.className = 'flex-1 text-sm text-slate-700 dark:text-slate-200 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-400 rounded px-1 py-0 outline-none w-full min-w-0';
+            titleEl.replaceWith(input);
+            input.focus();
+            input.select();
+
+            const commit = () => {
+                editFlatItems[idx].title = input.value.trim() || current;
+                renderOutlineEditor();
+            };
+            input.addEventListener('blur', commit);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                if (e.key === 'Escape') { editFlatItems[idx].title = current; renderOutlineEditor(); }
+            });
+        }
+
+        function outdentItem(idx) {
+            if (editFlatItems[idx].depth === 0) return;
+            const { start, end } = subtreeRange(editFlatItems, idx);
+            const delta = -1;
+            for (let i = start; i < end; i++) editFlatItems[i].depth = Math.max(0, editFlatItems[i].depth + delta);
+            renderOutlineEditor();
+        }
+
+        function indentItem(idx) {
+            if (idx === 0) return;
+            const maxDepth = editFlatItems[idx - 1].depth + 1;
+            if (editFlatItems[idx].depth >= maxDepth) return;
+            const { start, end } = subtreeRange(editFlatItems, idx);
+            for (let i = start; i < end; i++) editFlatItems[i].depth++;
+            renderOutlineEditor();
+        }
+
+        function deleteOutlineItem(idx) {
+            const { start, end } = subtreeRange(editFlatItems, idx);
+            editFlatItems.splice(start, end - start);
+            renderOutlineEditor();
+        }
+
+        function moveOutlineSubtree(srcIdx, dstIdx) {
+            const { start: sStart, end: sEnd } = subtreeRange(editFlatItems, srcIdx);
+            const subtree = editFlatItems.splice(sStart, sEnd - sStart);
+
+            // spliceで配列が縮んだのでdstを補正
+            const adjustedDst = dstIdx > sStart ? dstIdx - (sEnd - sStart) : dstIdx;
+            const insertAt = Math.max(0, Math.min(adjustedDst, editFlatItems.length));
+
+            // 挿入先の深さに合わせてサブツリーの深さを調整
+            const targetDepth = insertAt < editFlatItems.length ? editFlatItems[insertAt].depth : 0;
+            const depthDelta = targetDepth - subtree[0].depth;
+            if (depthDelta !== 0) {
+                subtree.forEach(item => item.depth = Math.max(0, item.depth + depthDelta));
+            }
+
+            editFlatItems.splice(insertAt, 0, ...subtree);
+            renderOutlineEditor();
+        }
+
+        async function finalizeAndDownload(useOutline) {
+            if (!pendingMergedPdf) return;
+
+            downloadNoOutlineBtn.disabled = true;
+            downloadWithOutlineBtn.disabled = true;
+
+            try {
+                if (useOutline && editFlatItems.length > 0) {
+                    const treeData = flatToTree(editFlatItems);
+                    await addOutlinesToPdf(pendingMergedPdf, treeData);
+                }
+
+                const bytes = await pendingMergedPdf.save();
+                const blob = new Blob([bytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const filename = outputFilenameInput.value.trim() || 'merged';
+                a.download = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                downloadNoOutlineBtn.disabled = false;
+                downloadWithOutlineBtn.disabled = false;
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
         // --- 既存アウトライン抽出 (pdf.js) ---

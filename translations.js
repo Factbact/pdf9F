@@ -33,6 +33,15 @@ const translations = {
         'merge.outline.desc': '各ファイルの既存アウトラインをそのまま引き継ぎます。アウトラインがない場合はファイル名でブックマークを作成します。',
         'merge.groupbyfile.label': 'ファイル名でグループ化',
         'merge.groupbyfile.desc': '各ファイルのアウトラインをファイル名の下にまとめます（サブ項目として整理）。',
+        'merge.step5.title': 'アウトライン整理',
+        'merge.step5.desc': 'ドラッグで並び替え、クリックでタイトル編集、ボタンで階層変更・削除ができます。',
+        'merge.step5.empty': 'アウトラインがありません（設定でアウトラインをオンにしてください）',
+        'merge.step5.sort.natural': '番号順に整列',
+        'merge.step5.sort.page': 'ページ順に整列',
+        'merge.step5.auto.nest': '自動で階層整理',
+        'merge.step5.flatten': 'すべてフラット化',
+        'merge.step5.dl.nooutline': 'アウトラインなしでダウンロード',
+        'merge.step5.dl.withoutline': 'このアウトラインでダウンロード',
         'merge.drag.hint': 'ドラッグで並び替え',
 
         // 共通UI
@@ -256,6 +265,15 @@ const translations = {
         'merge.outline.desc': 'Preserves existing outlines from each file. Creates filename bookmarks for files without outlines.',
         'merge.groupbyfile.label': 'Group by Filename',
         'merge.groupbyfile.desc': 'Nest each file\'s outlines under its filename as sub-items.',
+        'merge.step5.title': 'Edit Outline',
+        'merge.step5.desc': 'Drag to reorder, click to edit titles, use buttons to change nesting or delete.',
+        'merge.step5.empty': 'No outline (enable the outline option in settings)',
+        'merge.step5.sort.natural': 'Sort by title',
+        'merge.step5.sort.page': 'Sort by page',
+        'merge.step5.auto.nest': 'Auto-detect nesting',
+        'merge.step5.flatten': 'Flatten all',
+        'merge.step5.dl.nooutline': 'Download without outline',
+        'merge.step5.dl.withoutline': 'Download with this outline',
         'merge.drag.hint': 'Drag to reorder',
 
         // Common UI
