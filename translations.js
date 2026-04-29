@@ -29,8 +29,10 @@ const translations = {
         'merge.btn': 'PDFを結合',
         'merge.output.label': '出力ファイル名',
         'merge.output.note': '※ .pdf は自動的に付加されます',
-        'merge.outline.label': 'アウトライン（しおり）を自動追加',
-        'merge.outline.desc': '各ファイルの先頭ページにブックマークを作成します。PDFビューアのサイドバーから素早くジャンプできます。',
+        'merge.outline.label': 'アウトラインを保持・追加',
+        'merge.outline.desc': '各ファイルの既存アウトラインをそのまま引き継ぎます。アウトラインがない場合はファイル名でブックマークを作成します。',
+        'merge.groupbyfile.label': 'ファイル名でグループ化',
+        'merge.groupbyfile.desc': '各ファイルのアウトラインをファイル名の下にまとめます（サブ項目として整理）。',
         'merge.drag.hint': 'ドラッグで並び替え',
 
         // 共通UI
@@ -250,8 +252,10 @@ const translations = {
         'merge.btn': 'Merge PDFs',
         'merge.output.label': 'Output Filename',
         'merge.output.note': '* .pdf will be added automatically',
-        'merge.outline.label': 'Auto-add Outlines (Bookmarks)',
-        'merge.outline.desc': 'Creates bookmarks at the start of each file. Jump quickly from the PDF viewer sidebar.',
+        'merge.outline.label': 'Preserve & Add Outlines',
+        'merge.outline.desc': 'Preserves existing outlines from each file. Creates filename bookmarks for files without outlines.',
+        'merge.groupbyfile.label': 'Group by Filename',
+        'merge.groupbyfile.desc': 'Nest each file\'s outlines under its filename as sub-items.',
         'merge.drag.hint': 'Drag to reorder',
 
         // Common UI

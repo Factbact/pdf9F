@@ -336,11 +336,31 @@
                         <div class="ml-4">
                             <span
                                 class="block text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors"
-                                data-i18n="merge.outline.label">アウトライン（しおり）を自動追加</span>
+                                data-i18n="merge.outline.label">アウトラインを保持・追加</span>
                             <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5"
-                                data-i18n="merge.outline.desc">各ファイルの先頭ページにブックマークを作成します。PDFビューアのサイドバーから素早くジャンプできます。</span>
+                                data-i18n="merge.outline.desc">各ファイルの既存アウトラインをそのまま引き継ぎます。アウトラインがない場合はファイル名でブックマークを作成します。</span>
                         </div>
                     </label>
+
+                    <!-- サブオプション：ファイル名でグループ化 -->
+                    <div id="group-by-file-option" class="ml-4 pl-4 border-l-2 border-slate-200 dark:border-slate-700">
+                        <label
+                            class="flex items-center p-3 bg-white dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 transition-all group">
+                            <div class="relative flex items-center">
+                                <input id="group-by-file" name="group-by-file" type="checkbox" class="peer sr-only">
+                                <div
+                                    class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600">
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <span
+                                    class="block text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors"
+                                    data-i18n="merge.groupbyfile.label">ファイル名でグループ化</span>
+                                <span class="block text-xs text-slate-500 dark:text-slate-400 mt-0.5"
+                                    data-i18n="merge.groupbyfile.desc">各ファイルのアウトラインをファイル名の下にまとめます（前回までの動作）。</span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
             </section>
 
@@ -421,6 +441,8 @@
         const themeIconMoon = document.getElementById('theme-icon-moon');
         const outputFilenameInput = document.getElementById('output-filename');
         const addOutlinesCheckbox = document.getElementById('add-outlines');
+        const groupByFileCheckbox = document.getElementById('group-by-file');
+        const groupByFileOption = document.getElementById('group-by-file-option');
 
         let selectedFiles = [];
         let draggedItem = null;
@@ -429,6 +451,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             initLanguage();
+        });
+
+        // メインのアウトラインチェックが変わったらサブオプションを表示/非表示
+        addOutlinesCheckbox.addEventListener('change', () => {
+            groupByFileOption.style.display = addOutlinesCheckbox.checked ? '' : 'none';
         });
 
         // --- イベントリスナー ---
@@ -668,7 +695,23 @@
 
                     // ファイル名からブックマークタイトルを作成（.pdf を除去）
                     const bookmarkTitle = fileObj.name.replace(/\.pdf$/i, '');
-                    outlineData.push({ title: bookmarkTitle, pageIndex: startPageIndex });
+
+                    // 既存アウトラインを抽出してページオフセットを適用
+                    const existingOutline = await extractExistingOutline(arrayBuffer.slice(0));
+                    const offsetItems = existingOutline ? applyOffset(existingOutline, startPageIndex) : [];
+
+                    if (groupByFileCheckbox.checked) {
+                        // オプトイン：ファイル名を親にして既存アウトラインを子にまとめる
+                        outlineData.push({ title: bookmarkTitle, pageIndex: startPageIndex, children: offsetItems });
+                    } else {
+                        // デフォルト：既存アウトラインをそのままフラットに追加
+                        if (offsetItems.length > 0) {
+                            outlineData.push(...offsetItems);
+                        } else {
+                            // アウトラインがないファイルはファイル名でブックマークを作成
+                            outlineData.push({ title: bookmarkTitle, pageIndex: startPageIndex, children: [] });
+                        }
+                    }
 
                     const pages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
                     pages.forEach(page => mergedPdf.addPage(page));
@@ -716,59 +759,107 @@
             errorBox.classList.add('hidden');
         }
 
-        // --- アウトライン追加 ---
-        async function addOutlinesToPdf(pdfDoc, outlineData) {
-            // pdf-lib の低レベルAPIを使用してアウトラインを作成
-            const context = pdfDoc.context;
+        // --- 既存アウトライン抽出 (pdf.js) ---
+        async function extractExistingOutline(arrayBuffer) {
+            try {
+                const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+                const pdfDoc = await loadingTask.promise;
+                const outline = await pdfDoc.getOutline();
+                if (!outline || outline.length === 0) {
+                    await pdfDoc.destroy();
+                    return null;
+                }
 
-            // 各ブックマーク項目の参照を作成
-            const outlineItems = [];
+                async function processItems(items) {
+                    const result = [];
+                    for (const item of items) {
+                        let pageIndex = null;
+                        if (item.dest) {
+                            try {
+                                let dest = item.dest;
+                                if (typeof dest === 'string') {
+                                    dest = await pdfDoc.getDestination(dest);
+                                }
+                                if (Array.isArray(dest) && dest.length > 0) {
+                                    pageIndex = await pdfDoc.getPageIndex(dest[0]);
+                                }
+                            } catch (e) { /* 解決できない宛先はスキップ */ }
+                        }
+                        result.push({
+                            title: item.title || '',
+                            pageIndex,
+                            children: item.items && item.items.length > 0 ? await processItems(item.items) : []
+                        });
+                    }
+                    return result;
+                }
 
-            for (let i = 0; i < outlineData.length; i++) {
-                const { title, pageIndex } = outlineData[i];
-                const page = pdfDoc.getPage(pageIndex);
-                const pageRef = page.ref;
+                const result = await processItems(outline);
+                await pdfDoc.destroy();
+                return result;
+            } catch (e) {
+                return null;
+            }
+        }
 
-                // 目的地配列を作成 [pageRef, /XYZ, left, top, zoom]
-                const destArray = context.obj([pageRef, 'XYZ', null, null, null]);
+        function applyOffset(items, offset) {
+            return items.map(item => ({
+                ...item,
+                pageIndex: item.pageIndex !== null ? item.pageIndex + offset : null,
+                children: applyOffset(item.children, offset)
+            }));
+        }
 
-                // アウトライン項目辞書を作成
-                const outlineItemDict = context.obj({
-                    Title: PDFLib.PDFHexString.fromText(title),
-                    Parent: null, // 後で設定
+        // --- アウトライン追加（階層対応）---
+        function buildOutlineTree(context, pdfDoc, items, parentRef) {
+            if (!items || items.length === 0) return [];
+            const nodes = [];
+            for (const item of items) {
+                if (item.pageIndex === null || item.pageIndex < 0 || item.pageIndex >= pdfDoc.getPageCount()) continue;
+                const page = pdfDoc.getPage(item.pageIndex);
+                const destArray = context.obj([page.ref, 'XYZ', null, null, null]);
+                const itemDict = context.obj({
+                    Title: PDFLib.PDFHexString.fromText(item.title || ''),
                     Dest: destArray,
                 });
+                const itemRef = context.register(itemDict);
 
-                const outlineItemRef = context.register(outlineItemDict);
-                outlineItems.push({ dict: outlineItemDict, ref: outlineItemRef });
+                const childNodes = buildOutlineTree(context, pdfDoc, item.children || [], itemRef);
+                if (childNodes.length > 0) {
+                    for (let i = 0; i < childNodes.length; i++) {
+                        if (i > 0) childNodes[i].dict.set(PDFLib.PDFName.of('Prev'), childNodes[i - 1].ref);
+                        if (i < childNodes.length - 1) childNodes[i].dict.set(PDFLib.PDFName.of('Next'), childNodes[i + 1].ref);
+                    }
+                    itemDict.set(PDFLib.PDFName.of('First'), childNodes[0].ref);
+                    itemDict.set(PDFLib.PDFName.of('Last'), childNodes[childNodes.length - 1].ref);
+                    itemDict.set(PDFLib.PDFName.of('Count'), PDFLib.PDFNumber.of(childNodes.length));
+                }
+                nodes.push({ ref: itemRef, dict: itemDict });
+            }
+            if (parentRef) {
+                nodes.forEach(node => node.dict.set(PDFLib.PDFName.of('Parent'), parentRef));
+            }
+            return nodes;
+        }
+
+        async function addOutlinesToPdf(pdfDoc, outlineData) {
+            const context = pdfDoc.context;
+            const topNodes = buildOutlineTree(context, pdfDoc, outlineData, null);
+            if (topNodes.length === 0) return;
+
+            for (let i = 0; i < topNodes.length; i++) {
+                if (i > 0) topNodes[i].dict.set(PDFLib.PDFName.of('Prev'), topNodes[i - 1].ref);
+                if (i < topNodes.length - 1) topNodes[i].dict.set(PDFLib.PDFName.of('Next'), topNodes[i + 1].ref);
             }
 
-            // アウトライン項目をリンク（Prev/Next）
-            for (let i = 0; i < outlineItems.length; i++) {
-                if (i > 0) {
-                    outlineItems[i].dict.set(PDFLib.PDFName.of('Prev'), outlineItems[i - 1].ref);
-                }
-                if (i < outlineItems.length - 1) {
-                    outlineItems[i].dict.set(PDFLib.PDFName.of('Next'), outlineItems[i + 1].ref);
-                }
-            }
-
-            // アウトラインルート辞書を作成
             const outlinesDict = context.obj({
                 Type: 'Outlines',
-                First: outlineItems[0].ref,
-                Last: outlineItems[outlineItems.length - 1].ref,
-                Count: outlineItems.length,
+                First: topNodes[0].ref,
+                Last: topNodes[topNodes.length - 1].ref,
+                Count: topNodes.length,
             });
-
             const outlinesRef = context.register(outlinesDict);
-
-            // 各アウトライン項目の親を設定
-            for (const item of outlineItems) {
-                item.dict.set(PDFLib.PDFName.of('Parent'), outlinesRef);
-            }
-
-            // カタログにアウトラインを追加
+            topNodes.forEach(node => node.dict.set(PDFLib.PDFName.of('Parent'), outlinesRef));
             pdfDoc.catalog.set(PDFLib.PDFName.of('Outlines'), outlinesRef);
         }
     </script>
