@@ -17,6 +17,7 @@ const errorBox = document.getElementById('error-box');
 const errorMessage = document.getElementById('error-message');
 
 let selectedFile = null;
+let selectionGeneration = 0;
 let totalPageCount = 0;
 let splitResults = []; // { name, bytes }[]
 
@@ -51,11 +52,19 @@ downloadAllBtn.addEventListener('click', downloadAll);
 
 // --- ファイル処理 ---
 async function handleFileSelection(file) {
+    const generation = ++selectionGeneration;
+    selectedFile = null;
+    totalPageCount = 0;
+    splitResults = [];
+    fileInfo.textContent = '';
+    resultsList.replaceChildren();
+    for (const section of [settingsSection, executeSection, resultsSection]) section.classList.add('hidden');
     if (!acceptFiles([file], showError)) return;
     hideError();
     try {
         const buf = await file.arrayBuffer();
         const pdf = await loadPdfSafely(buf, {});
+        if (generation !== selectionGeneration) return;
         totalPageCount = pdf.getPageCount();
         selectedFile = file;
 
@@ -66,6 +75,7 @@ async function handleFileSelection(file) {
         resultsList.innerHTML = '';
         splitResults = [];
     } catch (e) {
+        if (generation !== selectionGeneration) return;
         if (e.message.includes('encrypted') || e.message.includes('password')) {
             showError(t('error.encrypted'));
         } else {

@@ -38,6 +38,7 @@ const failedFilesList = document.getElementById('failed-files-list');
 const reprocessBtn = document.getElementById('reprocess-btn');
 
 let selectedFiles = [];
+let listGeneration = 0;
 let inputDirHandle = null;
 let failedFiles = [];
 
@@ -216,6 +217,7 @@ async function updateSelectedFiles(filesToProcess, dirHandle = null) {
 }
 
 async function renderFileList() {
+    const generation = ++listGeneration;
     const totalInputSize = selectedFiles.reduce((sum, f) => sum + f.file.size, 0);
 
     if (selectedFiles.length === 1) {
@@ -254,12 +256,6 @@ async function renderFileList() {
             canvas.className = 'w-full h-full object-contain';
             iconDiv.appendChild(canvas);
 
-            // 非同期でサムネイル生成
-            generateThumbnail(fileObj.file, canvas, fileObj.rotation || 0).catch(err => {
-                console.error('Thumbnail generation failed:', err);
-                iconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>';
-            });
-
             const textDiv = document.createElement('div');
             textDiv.className = 'truncate';
             textDiv.innerHTML = `<div class="font-medium text-slate-700 dark:text-slate-200 truncate" data-safe-0=""><span data-safe-1></span></div><div class="text-xs text-slate-500 dark:text-slate-400">${formatBytes(fileObj.file.size)}</div>`;
@@ -276,6 +272,7 @@ async function renderFileList() {
             try {
                 const arrayBuffer = await fileObj.file.arrayBuffer();
                 const pdfDoc = await loadPdfSafely(arrayBuffer, {});
+                if (generation !== listGeneration) return;
                 if (pdfDoc.getPageCount() > 0) {
                     const firstPage = pdfDoc.getPage(0);
                     const visualSize = getVisualSize(firstPage);
@@ -341,7 +338,15 @@ async function renderFileList() {
 
             li.appendChild(leftDiv);
             li.appendChild(rightDiv);
+            if (generation !== listGeneration) return;
             fileListContainer.appendChild(li);
+            // 非同期でサムネイル生成
+            generateThumbnail(fileObj.file, canvas, fileObj.rotation || 0).catch(err => {
+                console.error('Thumbnail generation failed:', err);
+                iconDiv.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>';
+            });
+
+
         }
     }
 
@@ -530,7 +535,7 @@ async function showPreview() {
             viewport: finalViewport
         };
 
-        await item.page.render(renderContext).promise;
+        await pdfjsLib.renderPage(item.page, renderContext);
 
         // メインキャンバスに転送 (中央寄せ)
         const drawX = x + (cellWidth - finalViewport.width) / 2;
@@ -863,30 +868,7 @@ async function downloadPdf(bytes, fileObject) {
 }
 
 async function generateThumbnail(file, canvas, rotation) {
-    const arrayBuffer = await file.arrayBuffer();
-    const loadingTask = pdfjsLib.getDocument({ isEvalSupported: false, data: arrayBuffer });
-    const pdf = await loadingTask.promise;
-    try {
-    const page = await pdf.getPage(1);
-
-    // 目的のサイズ（ここでは幅128px程度）に合わせてスケールを計算
-    // 高解像度ディスプレイ向けに少し大きめにレンダリングしてCSSで縮小表示
-    const desiredWidth = 128;
-    const viewport = page.getViewport({ scale: 1, rotation: rotation });
-    const scale = desiredWidth / viewport.width;
-    const scaledViewport = page.getViewport({ scale: scale, rotation: rotation });
-
-    checkPixels(scaledViewport.width, scaledViewport.height);
-
-    canvas.width = scaledViewport.width;
-    canvas.height = scaledViewport.height;
-
-    const renderContext = {
-        canvasContext: canvas.getContext('2d'),
-        viewport: scaledViewport
-    };
-    await page.render(renderContext).promise;
-    } finally { await pdf.destroy(); }
+    return pdfjsLib.renderThumbnail(file, canvas, { width: 128, rotation });
 }
 
 function renderFailedFiles() {

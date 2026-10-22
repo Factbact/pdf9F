@@ -1,4 +1,5 @@
 import { convertHeicToBlob } from './heic-client.mjs';
+import { normalizeImage } from './image-client.mjs';
 
 const MM_TO_PT = 2.83465;
 const PAPER_SIZES = {
@@ -26,6 +27,8 @@ const themeIconSun = document.getElementById('theme-icon-sun');
 const themeIconMoon = document.getElementById('theme-icon-moon');
 
 let selectedFiles = [];
+let importing = false;
+let selectionGeneration = 0;
 
 // --- 初期化 ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -45,6 +48,7 @@ setupDropZone(dropArea, (dt) => handleFileSelection(dt.files));
 
 // --- ファイル操作 ---
 async function handleFileSelection(fileList) {
+    if (importing) { showError(securityMessage('busy')); return; }
     if (!acceptFiles([...selectedFiles, ...Array.from(fileList)], showError)) return;
     const imageFiles = Array.from(fileList).filter(f =>
         /^image\/(png|jpeg|gif|webp|bmp|heic|heif)$/.test(f.type) || /\.(heic|heif)$/i.test(f.name)
@@ -54,7 +58,12 @@ async function handleFileSelection(fileList) {
         return;
     }
 
+    importing = true;
+    convertBtn.disabled = true;
+    const generation = selectionGeneration;
+    try {
     for (const file of imageFiles) {
+        if (generation !== selectionGeneration) return;
         let processedFile = file;
         let thumbnail = null;
 
@@ -65,27 +74,32 @@ async function handleFileSelection(fileList) {
                 const pngBlob = await convertHeicToBlob(file, 'image/png', 0.8);
                 processedFile = new File([pngBlob], file.name.replace(/\.heic$/i, '.png'), { type: 'image/png' });
             } catch (e) {
-                showError(e.message);
+                if (generation === selectionGeneration) showError(e.message);
                 console.error('HEIC conversion error:', e);
                 continue;
             }
         }
 
         // サムネイル生成
+        if (generation !== selectionGeneration) return;
         processedFile = await normalizeImage(processedFile);
-        validateFiles([...selectedFiles, processedFile]);
+        if (generation !== selectionGeneration) return;
         thumbnail = await createThumbnail(processedFile);
+        if (generation !== selectionGeneration) return;
+        validateFiles([...selectedFiles, processedFile]);
 
         selectedFiles.push({
             file: processedFile,
-            originalFile: file,
             name: file.name,
             thumbnail,
             id: crypto.randomUUID()
         });
-        } catch (error) { showError(error.message); continue; }
+        } catch (error) { if (generation === selectionGeneration) showError(error.message); continue; }
     }
-    renderFileList();
+    } finally {
+        importing = false;
+        renderFileList();
+    }
 }
 
 function createThumbnail(file) {
@@ -103,6 +117,7 @@ function removeFile(id) {
 }
 
 function clearAllFiles() {
+    selectionGeneration++;
     selectedFiles = [];
     renderFileList();
 }
@@ -151,11 +166,12 @@ function renderFileList() {
         fileListContainer.appendChild(div);
     }
 
-    convertBtn.disabled = selectedFiles.length === 0;
+    convertBtn.disabled = importing || selectedFiles.length === 0;
 }
 
 // --- PDF変換 ---
 async function convertToPdf() {
+    if (importing) return;
     if (selectedFiles.length === 0) return;
 
     progressSection.classList.remove('hidden');

@@ -170,7 +170,7 @@ async function runCompress() {
                 canvas.width = Math.round(viewport.width);
                 canvas.height = Math.round(viewport.height);
                 const ctx = canvas.getContext('2d');
-                await page.render({ canvasContext: ctx, viewport }).promise;
+                await pdfjsLib.renderPage(page, { canvasContext: ctx, viewport });
 
                 // JPEG エンコード
                 const jpegDataUrl = canvas.toDataURL('image/jpeg', jpegQuality);

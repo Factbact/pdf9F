@@ -99,6 +99,78 @@ for(const name of names) test(`${name}: normal output, filenames, language, them
   } finally {await page.close();}
 });
 if(!baseline) {
+ for (const name of ['split','outline']) test(`${name}: invalid replacement cannot revive an older selection`,async()=>{
+  const {page,record}=await open(name);try{
+   await page.evaluate(()=>{
+    const read=File.prototype.arrayBuffer;
+    File.prototype.arrayBuffer=function(){
+     if(this.name==='slow.pdf')return new Promise(resolve=>{globalThis.__resumePdf=()=>resolve(read.call(this));});
+     return read.call(this);
+    };
+   });
+   await page.locator('input[type=file]').setInputFiles(file('slow.pdf'));
+   await page.waitForFunction(()=>!!globalThis.__resumePdf);
+   await page.locator('input[type=file]').setInputFiles(file('broken.pdf',Buffer.from('broken')));
+   await page.locator('#error-box').waitFor({state:'visible'});
+   await page.evaluate(async()=>{__resumePdf();await new Promise(r=>setTimeout(r,200));});
+   assert.equal(await page.locator(name==='split'?'#execute-section':'#action-section').isVisible(),false);
+   assert.deepEqual(record.errors,[]);
+  }finally{await page.close();}
+ });
+ test('image import cannot restore cleared files or enable conversion mid-import',async()=>{
+  const {page,record}=await open('img2pdf');try{
+   await page.locator('input[type=file]').setInputFiles(file('first.png',fixtures.png,'image/png'));
+   await page.waitForFunction(()=>!document.querySelector('#convert-btn').disabled);
+   await page.evaluate(()=>{
+    const NativeWorker=Worker;
+    globalThis.Worker=class extends NativeWorker {
+     postMessage(file,...rest){
+      if(file?.name==='slow.png'){
+       this.addEventListener('message',()=>{globalThis.__imageDone=true;});
+       globalThis.__resumeImage=()=>super.postMessage(file,...rest);
+      }else super.postMessage(file,...rest);
+     }
+    };
+   });
+   await page.locator('input[type=file]').setInputFiles(file('slow.png',fixtures.png,'image/png'));
+   await page.waitForFunction(()=>!!globalThis.__resumeImage);
+   assert.equal(await page.locator('#convert-btn').isDisabled(),true);
+   await page.locator('#clear-all-btn').click();
+   await page.evaluate(()=>__resumeImage());
+   await page.waitForFunction(()=>globalThis.__imageDone);
+   assert.equal(await page.locator('#file-list-container .remove-btn').count(),0);
+   assert.equal(await page.locator('#convert-btn').isDisabled(),true);
+   assert.deepEqual(record.errors,[]);
+  }finally{await page.close();}
+ });
+ test('thumbnail generation has at most two live PDF workers',async()=>{
+  const {page,record}=await open('merge');try{
+   await page.evaluate(()=>{
+    const NativeWorker=Worker;globalThis.__activeWorkers=0;globalThis.__peakWorkers=0;
+    globalThis.Worker=class extends NativeWorker {
+     constructor(url,options){super(url,options);this.tracked=String(url).includes('pdf.worker.mjs');if(this.tracked){__activeWorkers++;__peakWorkers=Math.max(__peakWorkers,__activeWorkers);}}
+     terminate(){if(this.tracked){__activeWorkers--;this.tracked=false;}return super.terminate();}
+    };
+   });
+   await page.locator('input[type=file]').setInputFiles(Array.from({length:8},(_,i)=>file(`sample-${i}.pdf`)));
+   await page.waitForFunction(()=>document.querySelectorAll('#file-list-container canvas').length===8 && [...document.querySelectorAll('#file-list-container canvas')].every(c=>c.width===60) && __activeWorkers===0);
+   assert.equal(await page.evaluate(()=>__peakWorkers),2);
+   assert.deepEqual(record.errors,[]);
+  }finally{await page.close();}
+ });
+ test('stalled PDF rendering is cancelled on deadline',async()=>{
+  const {page}=await open('index');try{
+   const result=await page.evaluate(async()=>{
+    const {renderPage}=await import('./assets/pdf-runtime.mjs');
+    const schedule=setTimeout;globalThis.setTimeout=(fn,delay,...args)=>schedule(fn,delay===30000?10:delay,...args);
+    let cancelled=false;
+    try{await renderPage({render:()=>({promise:new Promise(()=>{}),cancel:()=>{cancelled=true;}})},{});}
+    catch(error){return {cancelled,message:error.message};}
+    finally{globalThis.setTimeout=schedule;}
+   });
+   assert.equal(result.cancelled,true);assert.match(result.message,/タイムアウト/);
+  }finally{await page.close();}
+ });
  for(const format of ['jpeg','webp']) test(`HEIC ${format} output and URL cleanup`,async()=>{
   const {page}=await open('heic');try{
    await page.locator('input[type=file]').setInputFiles(file('photo.heic',fs.readFileSync('.tmp/example.heic'),'image/heic'));

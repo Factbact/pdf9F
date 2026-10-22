@@ -31,6 +31,7 @@ let pdfBytes      = null;
 let loadedItems   = null;
 let loadedPreview = null;
 let selectedFile  = null;
+let selectionGeneration = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
@@ -49,6 +50,13 @@ setupDropZone(dropArea, (dt) => { if (dt.files[0]) handleFile(dt.files[0]); });
 // ファイル読み込み
 // ----------------------------------------------------------------
 async function handleFile(file) {
+    const generation = ++selectionGeneration;
+    pdfBytes = loadedItems = loadedPreview = selectedFile = null;
+    outlineBefore.replaceChildren();
+    outlineAfter.replaceChildren();
+    outlineSection.classList.add('hidden');
+    actionSection.classList.add('hidden');
+    fileInfo.textContent = '';
     if (!acceptFiles([file], showError)) return;
     if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
         showError('PDFファイルを選択してください。');
@@ -62,8 +70,10 @@ async function handleFile(file) {
     selectedFile = file;
 
     try {
-        pdfBytes = await file.arrayBuffer();
-        const pdfDoc = await loadPdfSafely(pdfBytes, {});
+        const bytes = await file.arrayBuffer();
+        const pdfDoc = await loadPdfSafely(bytes, {});
+        if (generation !== selectionGeneration) return;
+        pdfBytes = bytes;
         const items = readOutline(pdfDoc);
 
         if (!items || items.length === 0) {
@@ -78,6 +88,7 @@ async function handleFile(file) {
         outlineSection.classList.remove('hidden');
         actionSection.classList.remove('hidden');
     } catch (err) {
+        if (generation !== selectionGeneration) return;
         showError(`PDFの読み込みに失敗しました: ${err.message}`);
         console.error(err);
     }

@@ -170,7 +170,7 @@ async function renderFileList() {
         const canvas = document.createElement('canvas');
         canvas.className = 'w-full h-full object-contain';
         thumbDiv.appendChild(canvas);
-        generateThumbnail(fileObj.file, canvas);
+
 
         // ファイル名
         const nameDiv = document.createElement('div');
@@ -194,6 +194,7 @@ async function renderFileList() {
         li.appendChild(leftDiv);
         li.appendChild(removeBtn);
         fileListContainer.appendChild(li);
+        generateThumbnail(fileObj.file, canvas);
     }
 
     mergeBtn.disabled = selectedFiles.length < 2;
@@ -247,22 +248,8 @@ function updateOrderFromDOM() {
 
 // --- サムネイル生成 ---
 async function generateThumbnail(file, canvas) {
-    let pdf;
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        pdf = await pdfjsLib.getDocument({ isEvalSupported: false, data: arrayBuffer }).promise;
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 0.2 });
-        checkPixels(viewport.width, viewport.height);
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        await page.render({
-            canvasContext: canvas.getContext('2d'),
-            viewport: viewport
-        }).promise;
-    } catch (err) {
-        console.error('Thumbnail error:', err);
-    } finally { await pdf?.destroy(); }
+    try { await pdfjsLib.renderThumbnail(file, canvas); }
+    catch (error) { console.error('Thumbnail error:', error); }
 }
 
 // --- PDF結合 ---

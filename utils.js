@@ -9,6 +9,7 @@ function securityMessage(kind) {
         output: ['出力データの合計は200 MiBまでです。', 'Combined output is limited to 200 MiB.'],
         pixels: ['画像・描画サイズが上限（32メガピクセル、辺16384px）を超えています。', 'Image/render limit: 32 megapixels, 16384 pixels per side.'],
         timeout: ['処理がタイムアウトしました。', 'Processing timed out.'],
+        busy: ['読み込み中です。完了後に追加してください。', 'Loading files. Please wait before adding more.'],
         decode: ['画像のデコードに失敗しました。', 'Image decoding failed.']
     };
     return messages[kind][en ? 1 : 0];
@@ -37,21 +38,6 @@ async function loadPdfSafely(bytes, options = {}) {
     const doc = await PDFLib.PDFDocument.load(bytes, { ...options, ignoreEncryption: false });
     checkPageCount(doc.getPageCount());
     return doc;
-}
-
-async function normalizeImage(file) {
-    const bitmap = await createImageBitmap(file);
-    try {
-        checkPixels(bitmap.width, bitmap.height);
-        const canvas = document.createElement('canvas');
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        try {
-            canvas.getContext('2d').drawImage(bitmap, 0, 0);
-            const blob = await new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error(securityMessage('decode'))), 'image/png'));
-            return new File([blob], file.name, { type: 'image/png' });
-        } finally { canvas.width = canvas.height = 0; }
-    } finally { bitmap.close(); }
 }
 
 // --- フォーマット ---

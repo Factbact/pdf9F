@@ -27,7 +27,8 @@ test('PDF.js core/worker are from the pinned package and eval is disabled at eve
   for(const call of calls)assert.match(call,/isEvalSupported: false/);
   count+=calls.length;
  }
- assert.equal(count,5);
+ assert.equal(count,3);
+ assert.match(fs.readFileSync('assets/pdf-runtime.mjs','utf8'),/getDocument\(\{ isEvalSupported: false, data: await file.arrayBuffer\(\)/);
 });
 test('untrusted file strings cannot be interpolated into HTML templates',()=>{
  for(const name of pages){
