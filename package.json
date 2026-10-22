@@ -1,0 +1,20 @@
+{
+  "name": "pdf9f",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "test:setup": "node tests/setup.cjs",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "dependencies": {
+    "libheif-js": "1.23.5",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "6.4.299"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "postcss": "8.5.31",
+    "tailwindcss": "4.3.3"
+  }
+}

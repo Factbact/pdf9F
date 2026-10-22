@@ -1,0 +1,2 @@
+https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap
+Retrieved: 2026-10-22. See OFL files. Versioned by SHA-256 in vendor-manifest.json.

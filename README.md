@@ -65,10 +65,28 @@ PDFのアウトライン（しおり）を自然順（数値順）に並び替�
 | 用途 | ライブラリ |
 |------|-----------|
 | PDF 操作 | [pdf-lib](https://github.com/Hopding/pdf-lib) v1.17.1 |
-| PDF レンダリング | [PDF.js](https://mozilla.github.io/pdf.js/) |
-| HEIC デコード | [libheif-js](https://github.com/catdad-experiments/libheif-js) v1.19.8 (WASM) |
-| スタイリング | [Tailwind CSS](https://tailwindcss.com/) v3 (CDN) |
-| フォント | Plus Jakarta Sans, Outfit (Google Fonts) |
+| PDF レンダリング | [PDF.js](https://mozilla.github.io/pdf.js/) v6.4.299 (ES Modules、本体・Worker同一版) |
+| HEIC デコード | [libheif-js](https://github.com/catdad-experiments/libheif-js) v1.23.5 (WASM、両ツール共通Worker) |
+| スタイリング | [Tailwind CSS](https://tailwindcss.com/) v4.3.3 (ビルド済みCSS、従来の配色を維持) |
+| フォント | Plus Jakarta Sans, Outfit (OFL、ローカル配信) |
+
+すべての実行時ライブラリ・フォントを `vendor/` に固定して同梱しています。CDNへのアクセスはありません。
+セキュリティ修正、依存一覧、動作変更、テスト結果、残存リスクは [SECURITY-REVIEW.md](SECURITY-REVIEW.md) を参照してください。
+
+### 開発・検証
+
+Node.js 22以降とChromeを使用します。
+
+```sh
+npm ci --ignore-scripts
+npm run build
+npm run test:setup
+npm test
+```
+
+`test:setup` は上流の公開HEICサンプルを取得し、SHA-256を検証します。テストに利用者のファイルは使いません。
+Edgeは `BROWSER_CHANNEL=msedge`、Playwright同梱Chromiumは `BROWSER_CHANNEL=chromium` を設定してください。
+GitHub Pagesではビルド済みの `assets/` と `vendor/` をそのまま配信できます。ローカル確認はHTTPサーバー経由で行ってください（ES Modulesのため `file://` は非対応）。
 
 ---
 
@@ -117,9 +135,8 @@ PDFのアウトライン（しおり）を自然順（数値順）に並び替�
   大きいPDFを面付けすると処理が重くなる問題がある。
   Web Workerへの移行でUIスレッドのブロッキングを解消できる。
 
-- [ ] **画像→PDF変換でのHEIC対応強化**
-  現状はHEICをcanvas経由でPNGに変換してからPDFに埋め込んでいる。
-  libheif-jsを使った直接変換に統一するとコード重複が減る。
+- [x] **画像→PDF変換でのHEIC対応強化**
+  両ツールともlibheif-js 1.23.5の共通Workerでデコードします。
 
 ### 優先度：低
 - [ ] **PWA対応**（Service Worker + manifest.json）でオフラインインストール可能にする
@@ -132,7 +149,8 @@ PDFのアウトライン（しおり）を自然順（数値順）に並び替�
 ## 既知の問題
 
 - iOS / iPadOSの一部ブラウザで、PDF回転処理が正しく反映されない場合がある（PCでの利用を推奨）
-- 非常に大きなPDF（100MB超）はメモリ不足でブラウザがクラッシュすることがある
+- 入力は各50 MiB・合計200 MiB・50ファイル、PDFは500ページまで。上限内でも複雑なデータによるメモリ不足の可能性は残ります。
+- 変換中はファイル追加・削除・設定変更を一時的に無効化します。PDFは30秒の期限付きWorkerで事前検査しますが、編集・保存全体の強制終了や完全なメモリ上限を保証するものではありません。
 - アウトライン並び替えは「次の同階層見出しの直前まで」を同一セクションとして扱う仕様のため、しおりの付け方が特殊なPDFでは意図とずれる場合がある
 - `GoTo` 以外の特殊なアウトラインActionや複雑な名前付き宛先を含むPDFでは、一部のしおり挙動を完全再現できない可能性がある
 

@@ -476,6 +476,7 @@ function t(key) {
 
 // 言語を初期化
 function initLanguage() {
+    document.getElementById('lang-toggle-btn')?.addEventListener('click', toggleLanguage);
     const saved = localStorage.getItem('lang');
     if (saved && (saved === 'ja' || saved === 'en')) {
         currentLang = saved;
@@ -507,6 +508,7 @@ function updateLangButton() {
 
 // 翻訳を適用
 function applyTranslations() {
+    document.documentElement.lang = currentLang;
     // data-i18n 属性を持つ要素を翻訳
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
@@ -516,7 +518,9 @@ function applyTranslations() {
         } else if (el.tagName === 'OPTION') {
             el.textContent = translation;
         } else {
-            el.innerHTML = translation;
+            // Only the six bundled headings contain trusted static markup.
+            if (['nup.title', 'merge.title', 'split.title', 'compress.title', 'heic.title', 'img2pdf.title'].includes(key)) el.innerHTML = translation;
+            else el.textContent = translation;
         }
     });
 
