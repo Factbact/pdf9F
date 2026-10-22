@@ -50,6 +50,7 @@ setupDropZone(dropArea, (dt) => { if (dt.files[0]) handleFile(dt.files[0]); });
 // ファイル読み込み
 // ----------------------------------------------------------------
 async function handleFile(file) {
+    if (isProcessing()) return;
     const generation = ++selectionGeneration;
     pdfBytes = loadedItems = loadedPreview = selectedFile = null;
     outlineBefore.replaceChildren();
@@ -72,7 +73,7 @@ async function handleFile(file) {
     try {
         const bytes = await file.arrayBuffer();
         const pdfDoc = await loadPdfSafely(bytes, {});
-        if (generation !== selectionGeneration) return;
+        if (generation !== selectionGeneration || isProcessing()) return;
         pdfBytes = bytes;
         const items = readOutline(pdfDoc);
 
@@ -88,7 +89,7 @@ async function handleFile(file) {
         outlineSection.classList.remove('hidden');
         actionSection.classList.remove('hidden');
     } catch (err) {
-        if (generation !== selectionGeneration) return;
+        if (generation !== selectionGeneration || isProcessing()) return;
         showError(`PDFの読み込みに失敗しました: ${err.message}`);
         console.error(err);
     }
@@ -507,6 +508,10 @@ function countSections(items) {
 // ソート実行 → PDF再構築 → ダウンロード
 // ----------------------------------------------------------------
 async function sortAndDownload() {
+    return withProcessingLock(() => sortAndDownloadTask());
+}
+
+async function sortAndDownloadTask() {
     if (!pdfBytes || !loadedItems) return;
 
     sortBtn.disabled = true;

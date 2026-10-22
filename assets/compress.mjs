@@ -59,6 +59,7 @@ downloadAllBtn.addEventListener('click', downloadAll);
 
 // --- ファイル処理 ---
 function handleFileSelection(files) {
+    if (isProcessing()) return;
     if (!acceptFiles([...selectedFiles, ...Array.from(files)], showError)) return;
     hideError();
     const pdfs = Array.from(files).filter(f => f.type === 'application/pdf');
@@ -121,6 +122,10 @@ function clearAll() {
 
 // --- 圧縮実行 ---
 async function runCompress() {
+    return withProcessingLock(() => runCompressTask());
+}
+
+async function runCompressTask() {
     if (selectedFiles.length === 0) { showError(t('compress.error.nopdf')); return; }
 
     hideError();

@@ -70,6 +70,7 @@ setupDropZone(dropArea, (dt) => handleFileSelection(dt.files));
 
 // --- ファイル操作 ---
 function handleFileSelection(fileList) {
+    if (isProcessing()) return;
     if (!acceptFiles([...selectedFiles, ...Array.from(fileList)], showError)) return;
     const heicFiles = Array.from(fileList).filter(f => {
         const nameLower = f.name.toLowerCase();
@@ -167,6 +168,10 @@ function renderFileList() {
 // --- HEIC デコード → 指定フォーマットで Blob を返す ---
 // --- 変換 ---
 async function convertFiles() {
+    return withProcessingLock(() => convertFilesTask());
+}
+
+async function convertFilesTask() {
     if (selectedFiles.length === 0) return;
 
     progressSection.classList.remove('hidden');

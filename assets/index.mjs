@@ -142,6 +142,7 @@ async function handleFolderSelection() {
 }
 
 function handleFileSelection(fileList) {
+    if (isProcessing()) return;
     const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
     if (pdfFiles.length === 0) {
         if (selectedFiles.length === 0) handleError(t('error.nopdf'));
@@ -153,6 +154,7 @@ function handleFileSelection(fileList) {
 }
 
 function addFilesToList(newFiles) {
+    if (isProcessing()) return;
     if (!acceptFiles([...selectedFiles, ...newFiles], handleError)) return;
     selectedFiles = [...selectedFiles, ...newFiles];
     renderFileList();
@@ -209,6 +211,7 @@ async function getFilesInDirectory(dirHandle, path = '', budget = { count: 0, by
 }
 
 async function updateSelectedFiles(filesToProcess, dirHandle = null) {
+    if (isProcessing()) return;
     if (!acceptFiles(filesToProcess, handleError)) return;
     selectedFiles = filesToProcess.map(f => ({ ...f, id: f.id || crypto.randomUUID(), rotation: f.rotation || 0 }));
     inputDirHandle = dirHandle;
@@ -365,6 +368,10 @@ function handleConvertButtonClick() {
 }
 
 async function showPreview() {
+    return withProcessingLock(() => showPreviewTask());
+}
+
+async function showPreviewTask() {
     if (selectedFiles.length === 0) return;
     previewModal.classList.remove('hidden');
 
@@ -750,6 +757,10 @@ async function createNupPdfBytes(fileObject) {
 }
 
 async function startBatchProcess() {
+    return withProcessingLock(() => startBatchProcessTask());
+}
+
+async function startBatchProcessTask() {
     if (selectedFiles.length === 0) {
         handleError(t('error.nofile')); return;
     }

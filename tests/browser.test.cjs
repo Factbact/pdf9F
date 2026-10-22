@@ -289,3 +289,77 @@ if(!baseline) {
   }finally{await page.close();}
  });
 }
+
+if (!baseline) {
+ for (const name of names) test(name + ': processing lock rejects edits and concurrent work, then recovers', async () => {
+  const {page} = await open(name);
+  try {
+   const result = await page.evaluate(async () => {
+    let changed = 0, concurrent = 0;
+    const input = document.querySelector('input[type=file]');
+    input.addEventListener('change', () => changed++);
+    let release;
+    const pending = withProcessingLock(() => new Promise(resolve => { release = resolve; }));
+    const inert = document.querySelector('main').inert;
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+    document.querySelector('#drop-area').dispatchEvent(new Event('drop', {bubbles:true, cancelable:true}));
+    await withProcessingLock(() => concurrent++);
+    release(); await pending;
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+    let recovered = false;
+    try { await withProcessingLock(() => { throw new Error('test failure'); }); } catch {}
+    await withProcessingLock(() => { recovered = true; });
+    return {inert, changed, concurrent, recovered, busy:isProcessing(), after:document.querySelector('main').inert};
+   });
+   assert.deepEqual(result, {inert:true, changed:1, concurrent:0, recovered:true, busy:false, after:false});
+  } finally { await page.close(); }
+ });
+ test('PDF inspection timeout terminates worker before UI-thread parsing', async () => {
+  const {page} = await open('split');
+  try {
+   const result = await page.evaluate(async bytes => {
+    const NativeWorker = Worker, nativeTimeout = setTimeout;
+    let terminated = 0, parsed = 0;
+    globalThis.Worker = class extends NativeWorker {
+     postMessage() {} // Model a parser that never finishes.
+     terminate() { terminated++; super.terminate(); }
+    };
+    globalThis.setTimeout = (fn, ms, ...args) => nativeTimeout(fn, ms === 30000 ? 25 : ms, ...args);
+    PDFLib.PDFDocument.load = () => { parsed++; throw new Error('must not parse'); };
+    let error;
+    try { await loadPdfSafely(new Uint8Array(bytes)); } catch(e) { error = e.message; }
+    return {terminated, parsed, error, expected:securityMessage('timeout')};
+   }, [...pdf]);
+   assert.equal(result.terminated,1);
+   assert.equal(result.parsed,0);
+   assert.equal(result.error,result.expected);
+  } finally { await page.close(); }
+ });
+ test('HEIC active conversion cannot be restarted or have its selection replaced', async () => {
+  const {page} = await open('heic');
+  try {
+   await page.locator('input[type=file]').setInputFiles(file('original.heic',fs.readFileSync('.tmp/example.heic'),'image/heic'));
+   await page.evaluate(() => {
+    const NativeWorker = Worker;
+    globalThis.__workers = 0;
+    globalThis.Worker = class extends NativeWorker {
+     constructor(...args) { super(...args); globalThis.__workers++; }
+     postMessage(data) { globalThis.__resumeHeic = () => super.postMessage(data); }
+    };
+   });
+   await page.locator('#convert-btn').click();
+   await page.waitForFunction(() => !!globalThis.__resumeHeic);
+   await page.locator('input[type=file]').setInputFiles(file('replacement.heic',fs.readFileSync('.tmp/example.heic'),'image/heic'));
+   await page.evaluate(() => {
+    document.querySelector('#clear-all-btn').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+    document.querySelector('#convert-btn').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+   });
+   assert.equal(await page.evaluate(() => globalThis.__workers),1);
+   await page.evaluate(() => globalThis.__resumeHeic());
+   await page.locator('#results-grid a[download]').waitFor();
+   assert.equal(await page.locator('#results-grid a[download]').getAttribute('download'),'original.png');
+   await page.waitForFunction(() => !isProcessing());
+   assert.equal(await page.locator('main').getAttribute('inert'),null);
+  } finally { await page.close(); }
+ });
+}

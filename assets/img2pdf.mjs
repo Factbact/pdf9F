@@ -48,6 +48,7 @@ setupDropZone(dropArea, (dt) => handleFileSelection(dt.files));
 
 // --- ファイル操作 ---
 async function handleFileSelection(fileList) {
+    if (isProcessing()) return;
     if (importing) { showError(securityMessage('busy')); return; }
     if (!acceptFiles([...selectedFiles, ...Array.from(fileList)], showError)) return;
     const imageFiles = Array.from(fileList).filter(f =>
@@ -171,6 +172,10 @@ function renderFileList() {
 
 // --- PDF変換 ---
 async function convertToPdf() {
+    return withProcessingLock(() => convertToPdfTask());
+}
+
+async function convertToPdfTask() {
     if (importing) return;
     if (selectedFiles.length === 0) return;
 

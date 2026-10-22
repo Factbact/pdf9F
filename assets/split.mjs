@@ -52,6 +52,7 @@ downloadAllBtn.addEventListener('click', downloadAll);
 
 // --- ファイル処理 ---
 async function handleFileSelection(file) {
+    if (isProcessing()) return;
     const generation = ++selectionGeneration;
     selectedFile = null;
     totalPageCount = 0;
@@ -64,7 +65,7 @@ async function handleFileSelection(file) {
     try {
         const buf = await file.arrayBuffer();
         const pdf = await loadPdfSafely(buf, {});
-        if (generation !== selectionGeneration) return;
+        if (generation !== selectionGeneration || isProcessing()) return;
         totalPageCount = pdf.getPageCount();
         selectedFile = file;
 
@@ -75,7 +76,7 @@ async function handleFileSelection(file) {
         resultsList.innerHTML = '';
         splitResults = [];
     } catch (e) {
-        if (generation !== selectionGeneration) return;
+        if (generation !== selectionGeneration || isProcessing()) return;
         if (e.message.includes('encrypted') || e.message.includes('password')) {
             showError(t('error.encrypted'));
         } else {
@@ -106,6 +107,10 @@ function parsePageRange(rangeStr, maxPage) {
 
 // --- 分割実行 ---
 async function runSplit() {
+    return withProcessingLock(() => runSplitTask());
+}
+
+async function runSplitTask() {
     if (!selectedFile) { showError(t('split.error.nopdf')); return; }
 
     hideError();

@@ -35,6 +35,8 @@ function checkPixels(width, height) {
 }
 async function loadPdfSafely(bytes, options = {}) {
     if (bytes.byteLength > PROCESSING_LIMITS.fileBytes) throw new Error(securityMessage('files'));
+    const { inspectPdf } = await import('./assets/pdf-inspect-client.mjs');
+    await inspectPdf(bytes);
     const doc = await PDFLib.PDFDocument.load(bytes, { ...options, ignoreEncryption: false });
     checkPageCount(doc.getPageCount());
     return doc;
@@ -124,4 +126,33 @@ function setupDropZone(dropAreaEl, onDrop) {
         dropAreaEl.classList.remove('dragging');
         onDrop(e.dataTransfer);
     });
+}
+
+// Serialize conversions and freeze editing while a batch owns its inputs.
+let processing = false;
+function isProcessing() { return processing; }
+async function withProcessingLock(operation) {
+    if (processing) return;
+    processing = true;
+    const regions = [...document.querySelectorAll('main, #preview-modal')];
+    const previous = regions.map(el => el.inert);
+    const stopEditing = event => {
+        // Programmatic download links created by the operation must still work.
+        if (event.type === 'click' && event.target.closest?.('a[download]')) return;
+        if (event.target.closest?.('#theme-toggle-btn, #lang-toggle-btn')) return;
+        if (['drop', 'dragstart', 'change', 'input'].includes(event.type) ||
+            event.target.closest?.('button, input, select, textarea, [contenteditable]')) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+        }
+    };
+    const events = ['click', 'change', 'input', 'drop', 'dragstart'];
+    for (const event of events) document.addEventListener(event, stopEditing, true);
+    regions.forEach(el => { el.inert = true; el.setAttribute('aria-busy', 'true'); });
+    try { return await operation(); }
+    finally {
+        regions.forEach((el, i) => { el.inert = previous[i]; el.removeAttribute('aria-busy'); });
+        for (const event of events) document.removeEventListener(event, stopEditing, true);
+        processing = false;
+    }
 }

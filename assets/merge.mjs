@@ -69,6 +69,7 @@ setupDropZone(dropArea, (dt) => handleFileSelection(dt.files));
 
 // --- ファイル操作 ---
 function handleFileSelection(fileList) {
+    if (isProcessing()) return;
     if (!acceptFiles([...selectedFiles, ...Array.from(fileList)], showError)) return;
     const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf');
     if (pdfFiles.length === 0) {
@@ -254,6 +255,10 @@ async function generateThumbnail(file, canvas) {
 
 // --- PDF結合 ---
 async function mergePdfs() {
+    return withProcessingLock(() => mergePdfsTask());
+}
+
+async function mergePdfsTask() {
     if (selectedFiles.length < 2) return;
 
     progressSection.classList.remove('hidden');
@@ -569,6 +574,10 @@ function moveOutlineSubtree(srcIdx, dstIdx) {
 }
 
 async function finalizeAndDownload(useOutline) {
+    return withProcessingLock(() => finalizeAndDownloadTask(useOutline));
+}
+
+async function finalizeAndDownloadTask(useOutline) {
     if (!pendingMergedPdf) return;
 
     downloadNoOutlineBtn.disabled = true;
